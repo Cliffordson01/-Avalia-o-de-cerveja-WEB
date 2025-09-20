@@ -200,9 +200,6 @@ Este projeto está licenciado sob a licença MIT. Veja o arquivo `LICENSE` para 
 
 ## Contato
 
-Para dúvidas, sugestões ou feedback, entre em contato com [Seu Nome/Email/GitHub].
+Para dúvidas, sugestões ou feedback, entre em contato com [https://github.com/Cliffordson01].
 
----
-
-**Desenvolvido com 💖 por Manus AI**
 
