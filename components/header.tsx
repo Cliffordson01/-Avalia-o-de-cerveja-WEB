@@ -130,7 +130,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+        <nav className="hidden md:flex items-center gap-4z lg:gap-6">
           <NavigationLinks />
         </nav>
 
@@ -195,9 +195,9 @@ export function Header() {
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] max-w-sm">
+            <SheetContent side="right" className="w-[50vw] max-w-sm">
               <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
-              
+
               {/* Logo no Mobile Menu */}
               <div className="flex items-center gap-2 mb-8 pt-4">
                 <Beer className="h-6 w-6 text-primary" />
@@ -205,7 +205,7 @@ export function Header() {
               </div>
 
               {/* Mobile Navigation Links */}
-              <nav className="flex flex-col space-y-0">
+              <nav className="flex flex-col space-y-3 px-4 pt-4">
                 <NavigationLinks mobile />
               </nav>
 

@@ -105,7 +105,7 @@ export function BeerCard({ cerveja, userId, showActions = true }: BeerCardProps)
             tipoSelo === "prata" && "bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg", 
             tipoSelo === "bronze" && "bg-gradient-to-r from-amber-700 to-amber-800 text-white shadow-lg",
             tipoSelo === "empatado" && "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg",
-            !["ouro", "prata", "bronze", "empatado"].includes(tipoSelo) && "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
+            !["ouro", "prata", "bronze", "empatado"].includes(tipoSelo) && "bg-gradient-to-r from-red-500 to-blue-600 text-white shadow-lg"
           )}
         >
           {tipoSelo === "ouro" && "🥇 Ouro"}

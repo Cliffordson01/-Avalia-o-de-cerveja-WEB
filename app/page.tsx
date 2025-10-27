@@ -2,7 +2,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { BeerCard } from "@/components/beer-card"
 import { Button } from "@/components/ui/button"
-import { Trophy, Zap, TrendingUp } from "lucide-react"
+import { Trophy, Zap, TrendingUp, Swords } from "lucide-react"
 import Link from "next/link"
 import type { CervejaComDetalhes } from "@/lib/types"
 
@@ -109,7 +109,7 @@ cerveja:cerveja_id (*)
           </Button>
           <Button size="lg" variant="outline" asChild>
             <Link href="/batalha">
-              <Zap className="mr-2 h-5 w-5" />
+              <Swords className="mr-2 h-5 w-5" />
               Batalha VS
             </Link>
           </Button>

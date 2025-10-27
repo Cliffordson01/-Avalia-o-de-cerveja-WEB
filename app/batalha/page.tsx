@@ -1,6 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { BattleArena } from "@/components/battle-arena"
-import { Zap } from "lucide-react"
+import { Swords, Zap } from "lucide-react"
 
 export default async function BattlePage() {
   const supabase = await getSupabaseServerClient()
@@ -25,7 +25,7 @@ export default async function BattlePage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
         <div className="mb-4 flex items-center justify-center gap-3">
-          <Zap className="h-10 w-10 text-primary" />
+          <Swords className="h-10 w-10 text-primary animate-bounce" />
           <h1 className="font-bebas text-6xl tracking-wide">Batalha VS</h1>
         </div>
         <p className="text-lg text-muted-foreground text-pretty leading-relaxed">

@@ -17,6 +17,7 @@ interface BattleArenaProps {
   userId?: string
 }
 
+
 export function BattleArena({ cervejas, userId }: BattleArenaProps) {
   const router = useRouter()
   const { toast } = useToast()

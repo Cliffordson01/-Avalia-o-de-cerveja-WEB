@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button"
 // Definição dos tipos para os parâmetros de busca
 interface BeersPageProps {
   searchParams: {
-    q?: string 
-    sort?: string 
+    q?: string
+    sort?: string
   }
 }
 
@@ -39,6 +39,8 @@ export default async function BeersPage({ searchParams }: BeersPageProps) {
   }
 
   // CONSULTA PRINCIPAL CORRIGIDA - GARANTINDO DADOS COMPLETOS
+
+
   let baseQuery = supabase
     .from("cerveja")
     .select(`
@@ -56,6 +58,7 @@ export default async function BeersPage({ searchParams }: BeersPageProps) {
       )
     `)
     .eq("ativo", true)
+    
 
   // Aplicar filtro de busca se houver query
   if (query) {
