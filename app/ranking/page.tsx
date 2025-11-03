@@ -212,24 +212,24 @@ async function criarRankingsCompletos(supabase: any): Promise<Ranking[]> {
     })
   )
 
-  // Ordenar usando a lógica correta: votos > favoritos > comentários > avaliação > data
+  // Ordenar usando a lógica correta: avaliação > votos > favoritos > comentários > data
   const rankingsOrdenados = rankingsCompletos.sort((a, b) => {
-    // 1. Por votos (maior primeiro)
-    const diffVotos = (b.total_votos || 0) - (a.total_votos || 0)
-    if (diffVotos !== 0) return diffVotos
-    
-    // 2. Por favoritos (maior primeiro)
-    const diffFavoritos = (b.total_favoritos || 0) - (a.total_favoritos || 0)
-    if (diffFavoritos !== 0) return diffFavoritos
-    
-    // 3. Por comentários (maior primeiro)
-    const diffComentarios = (b.total_comentarios || 0) - (a.total_comentarios || 0)
-    if (diffComentarios !== 0) return diffComentarios
-    
-    // 4. Por avaliação (maior primeiro)
-    const diffAvaliacao = (b.media_avaliacao || 0) - (a.media_avaliacao || 0)
+    // 1. Por avaliação (maior primeiro)
+    const diffAvaliacao = Number(b.media_avaliacao || 0) - Number(a.media_avaliacao || 0)
     if (diffAvaliacao !== 0) return diffAvaliacao
-    
+
+    // 2. Por votos (maior primeiro)
+    const diffVotos = Number(b.total_votos || 0) - Number(a.total_votos || 0)
+    if (diffVotos !== 0) return diffVotos
+
+    // 3. Por favoritos (maior primeiro)
+    const diffFavoritos = Number(b.total_favoritos || 0) - Number(a.total_favoritos || 0)
+    if (diffFavoritos !== 0) return diffFavoritos
+
+    // 4. Por comentários (maior primeiro)
+    const diffComentarios = Number(b.total_comentarios || 0) - Number(a.total_comentarios || 0)
+    if (diffComentarios !== 0) return diffComentarios
+
     // 5. Por data (mais recentes primeiro)
     return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
   })

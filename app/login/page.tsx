@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Beer } from "lucide-react"
+import { Beer, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -72,6 +72,7 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+      const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
@@ -115,16 +116,53 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+              {/* 💡 CORREÇÃO 1: Adicionar uma div com 'relative' para agrupar o Input e o Botão */}
+              <div className="relative"> 
+                <Input
+                  id="password"
+                  // O tipo é dinâmico
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  // 💡 CORREÇÃO 2: Adicionar um padding direito para o ícone não sobrepor o texto
+                  className="pr-10" 
+                />
+                
+                {/* 💡 CORREÇÃO 3: O botão está agora DENTRO da div 'relative' */}
+                <button
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  // As classes 'absolute' e 'inset-y-0 right-0' posicionam o botão dentro do Input
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-primary"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" /> 
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+             
+            <button
+                  type="button" // MUITO IMPORTANTE: tipo "button" para não submeter o form
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-primary"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {/* Se showPassword for true, mostra o ícone para OCULTAR (EyeOff) */}
+                  {/* Se showPassword for false, mostra o ícone para MOSTRAR (Eye) */}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" /> 
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+             </div>
             </div>
+
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Carregando..." : isSignUp ? "Criar Conta" : "Entrar"}
