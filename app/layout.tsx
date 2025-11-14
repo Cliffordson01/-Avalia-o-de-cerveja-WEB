@@ -41,6 +41,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <Header />
         <main className="min-h-screen">{children}</main>
+        <link rel="shortcut icon" href="cerveja.png" type="image/x-icon" />
         <Footer />
         <Toaster />
         <Analytics />
