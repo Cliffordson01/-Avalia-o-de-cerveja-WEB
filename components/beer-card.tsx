@@ -3,7 +3,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Star, MessageCircle, TrendingUp, Heart } from "lucide-react"
+import { Star, MessageCircle, TrendingUp, Heart, Trophy } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { CervejaComDetalhes, Selo, Ranking } from "@/lib/types"
@@ -28,6 +28,7 @@ interface RankingData {
   total_votos: number
   total_comentarios: number
   total_favoritos: number
+  taças_breja?: number
   posicao?: number | null
 }
 
@@ -45,13 +46,13 @@ export function BeerCard({ cerveja, userId, showActions = true }: BeerCardProps)
     : (cerveja.selo && Array.isArray(cerveja.selo) && cerveja.selo.length > 0 
         ? cerveja.selo[0] as SeloComImagem 
         : undefined)
-
   // Dados padrão para quando não há ranking
   const defaultRankingData: RankingData = {
     media_avaliacao: 0,
     total_votos: 0,
     total_comentarios: 0,
     total_favoritos: 0,
+    taças_breja: 0,
     posicao: null
   }
 
@@ -181,6 +182,10 @@ export function BeerCard({ cerveja, userId, showActions = true }: BeerCardProps)
             <span className="font-medium">{formatNumber(displayData.total_favoritos)}</span>
             <span className="text-xs">favoritos</span>
           </div>
+
+          
+
+
         </div>
 
         {showActions && (

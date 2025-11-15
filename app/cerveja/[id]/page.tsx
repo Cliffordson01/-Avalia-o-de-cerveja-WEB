@@ -32,6 +32,7 @@ interface BeerRanking {
   total_votos?: number
   total_favoritos?: number
   total_comentarios?: number
+  taças_breja?: number
 }
 
 interface Selo {
@@ -1145,6 +1146,14 @@ export default function BeerDetailPage() {
                   <MessageCircle className="mr-1 h-4 w-4" />
                   {ranking?.total_comentarios || 0}
                 </Badge>
+                <Badge variant="outline" className="text-base">
+                    <Trophy className="mr-1 h-4 w-4" />
+                    {ranking.taças_breja}
+                </Badge>
+              
+                
+
+
               </div>
             </div>
 
