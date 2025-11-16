@@ -194,9 +194,8 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-beer-50 via-background to-sky-50 dark:from-gray-900 dark:via-background dark:to-gray-800 flex items-center justify-center p-4">
       
-      {/* BLOQUEADOR SUPABASE - ELIMINA GOOGLE, GITLAB, ETC */}
+      {/* BLOQUEADOR SUPABASE */}
       <style jsx global>{`
-        /* Remove TODOS os elementos de OAuth do Supabase */
         [class*="oauth"],
         [class*="social"], 
         [class*="google"],
@@ -209,21 +208,15 @@ function LoginForm() {
         .auth-button,
         .social-login,
         .oauth-provider,
-        /* Remove mensagens sobre Google */
         div:contains('Google'),
         p:contains('Google'),
         span:contains('Google'),
-        /* Remove "continue com" sections */
         [class*="continue-with"],
         [class*="alternative"],
         .auth-ui__divider,
-        /* Remove qualquer botão estranho */
         button:not([type="submit"]):not([type="button"]):not([class*="input"]),
-        /* Remove mensagem específica do Google */
         div:contains('Após cadastrar com Google'),
-        /* Remove divisores */
         hr, .divider, [class*="separator"],
-        /* Remove links de OAuth */
         a[href*="google"],
         a[href*="gitlab"],
         a[href*="oauth"]
@@ -238,7 +231,6 @@ function LoginForm() {
           border: none !important;
         }
 
-        /* Garante que não haja espaços vazios */
         body * {
           background-image: none !important;
         }
@@ -248,14 +240,14 @@ function LoginForm() {
         
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
-            {/* ÍCONE COM CORES FIXAS PARA VISIBILIDADE */}
-            <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl">
-              <Beer className="h-10 w-10 text-white" />
+            {/* ÍCONE COM CORES DE ALTO CONTRASTE - VISÍVEL EM QUALQUER TEMA */}
+            <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center shadow-2xl border-2 border-orange-300">
+              <Beer className="h-10 w-10 text-white drop-shadow-md" />
             </div>
           </div>
           
-          {/* TÍTULO COM CORES FIXAS PARA VISIBILIDADE */}
-          <h1 className="font-bebas text-5xl tracking-wider bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent mb-2">
+          {/* TÍTULO COM CORES DE ALTO CONTRASTE - VISÍVEL EM QUALQUER TEMA */}
+          <h1 className="font-bebas text-5xl tracking-wider bg-gradient-to-r from-orange-600 via-red-600 to-orange-700 bg-clip-text text-transparent mb-2 drop-shadow-sm">
             TOPBREJA
           </h1>
           <p className="text-foreground/80 font-light text-lg">
@@ -293,7 +285,6 @@ function LoginForm() {
 
             {isSignUp && (
               <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-center">
-                {/* ÍCONE COM COR FIXA PARA VISIBILIDADE */}
                 <MailCheck className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
                 <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
                   Enviaremos um email de confirmação para ativar sua conta
@@ -357,7 +348,7 @@ function LoginForm() {
               <Button 
                 type="submit" 
                 disabled={loading} 
-                className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 group"
+                className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 group"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
@@ -374,10 +365,9 @@ function LoginForm() {
             </form>
 
             <div className="mt-8 grid grid-cols-2 gap-4 text-center">
-              {/* ÍCONES COM CORES FIXAS PARA VISIBILIDADE */}
-              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-200 dark:border-amber-800">
-                <Award className="h-6 w-6 text-amber-600 dark:text-amber-400 mx-auto mb-1" />
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Avaliações</p>
+              <div className="bg-orange-50 dark:bg-orange-950/30 rounded-xl p-3 border border-orange-200 dark:border-orange-800">
+                <Award className="h-6 w-6 text-orange-600 dark:text-orange-400 mx-auto mb-1" />
+                <p className="text-xs font-semibold text-orange-700 dark:text-orange-300">Avaliações</p>
               </div>
               <div className="bg-sky-50 dark:bg-sky-950/30 rounded-xl p-3 border border-sky-200 dark:border-sky-800">
                 <Users className="h-6 w-6 text-sky-600 dark:text-sky-400 mx-auto mb-1" />
@@ -388,11 +378,11 @@ function LoginForm() {
             <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
                 Ao continuar, você concorda com nossos{" "}
-                <button type="button" className="text-amber-600 dark:text-amber-400 hover:underline font-semibold">
+                <button type="button" className="text-orange-600 dark:text-orange-400 hover:underline font-semibold">
                   Termos
                 </button>{" "}
                 e{" "}
-                <button type="button" className="text-amber-600 dark:text-amber-400 hover:underline font-semibold">
+                <button type="button" className="text-orange-600 dark:text-orange-400 hover:underline font-semibold">
                   Privacidade
                 </button>
               </p>
@@ -404,7 +394,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={toggleAuthMode}
-            className="text-sm text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-200 font-semibold"
+            className="text-sm text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 transition-colors duration-200 font-semibold"
           >
             {isSignUp ? "Já tem uma conta? Entre aqui" : "Novo por aqui? Cadastre-se gratuitamente"}
           </button>
