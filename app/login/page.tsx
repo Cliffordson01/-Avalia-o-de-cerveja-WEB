@@ -246,8 +246,8 @@ function LoginForm() {
             </div>
           </div>
           
-          {/* TÍTULO CORRIGIDO - CORES ESCURAS PARA ALTO CONTRASTE */}
-          <h1 className="font-bebas text-5xl tracking-wider bg-gradient-to-r from-red-700 via-orange-600 to-red-800 bg-clip-text text-transparent mb-2 drop-shadow-sm">
+          {/* TÍTULO CORRIGIDO - COR SÓLIDA VISÍVEL */}
+          <h1 className="font-bebas text-5xl tracking-wider text-orange-600 mb-2 drop-shadow-sm">
             TOPBREJA
           </h1>
           <p className="text-foreground/80 font-light text-lg">
