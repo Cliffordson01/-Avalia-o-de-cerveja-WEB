@@ -1,28 +1,29 @@
-// app/admin/cerveja/editar/[id]/page.tsx - VERSÃO COM DEBUG
+// app/admin/cerveja/editar/[id]/page.tsx - VERSÃO CORRIGIDA
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { BeerForm } from "@/components/admin/beer-form"
 import { redirect } from "next/navigation"
 
 interface EditBeerPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function EditBeerPage({ params }: EditBeerPageProps) {
-  console.log('🔍 DEBUG - EditBeerPage chamado com params:', params)
+  // ✅ CORREÇÃO: Aguardar params
+  const { id } = await params
+  
+  console.log('🔍 DEBUG - EditBeerPage chamado com ID:', id)
   
   const supabase = await getSupabaseServerClient()
   
   // Verificar autenticação
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   console.log('🔍 DEBUG - Usuário autenticado:', user?.id)
 
   if (!user) {
-    console.log('🔍 DEBUG - Redirecionando para login (usuário não autenticado)')
+    console.log('🔍 DEBUG - Redirecionando para login')
     redirect("/login")
   }
 
@@ -40,7 +41,7 @@ export default async function EditBeerPage({ params }: EditBeerPageProps) {
     redirect("/")
   }
 
-  // Buscar dados da cerveja para edição
+  // ✅ CORREÇÃO: Buscar dados da cerveja usando o ID correto
   const { data: cerveja, error } = await supabase
     .from("cerveja")
     .select(`
@@ -49,10 +50,13 @@ export default async function EditBeerPage({ params }: EditBeerPageProps) {
       ranking (*),
       proprietario (*)
     `)
-    .eq("uuid", params.id)
+    .eq("uuid", id)  // ✅ Usando a variável id corretamente
     .single()
 
-  console.log('🔍 DEBUG - Resultado da busca da cerveja:', { cerveja, error })
+  console.log('🔍 DEBUG - Resultado da busca da cerveja:', { 
+    cerveja: cerveja ? 'Encontrada' : 'Não encontrada', 
+    error 
+  })
 
   if (error || !cerveja) {
     console.error('❌ Erro ao buscar cerveja:', error)
@@ -72,10 +76,20 @@ export default async function EditBeerPage({ params }: EditBeerPageProps) {
       : cerveja.ranking ? [cerveja.ranking] : []
   }
 
-  console.log('🔍 DEBUG - Cerveja preparada para edição:', cervejaParaEdicao)
+  console.log('🔍 DEBUG - Cerveja preparada para edição:', {
+    nome: cervejaParaEdicao.nome,
+    marca: cervejaParaEdicao.marca,
+    temInformacao: !!cervejaParaEdicao.informacao?.length,
+    temRanking: !!cervejaParaEdicao.ranking?.length
+  })
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="mb-2 font-bebas text-4xl tracking-wide">Editar Cerveja</h1>
+        <p className="text-muted-foreground">Atualize as informações de {cerveja.nome}</p>
+      </div>
+      
       <BeerForm cerveja={cervejaParaEdicao} />
     </div>
   )

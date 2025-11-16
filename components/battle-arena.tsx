@@ -12,13 +12,11 @@ import {
   MessageCircle,
   Trophy,
   Sparkles,
-  X,
   Crown,
   RotateCw,
   Award,
   Calendar,
   Clock,
-  Router,
 } from "lucide-react";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -26,62 +24,6 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { getBeerImageUrl } from "@/lib/utils";
 import Link from "next/link";
-import { RouterContext } from "next/dist/shared/lib/router-context.shared-runtime";
-import router from "next/router";
-
-const getPortugueseDayName = (date: Date): string => {
-  const days = [
-    "Domingo",
-    "Segunda",
-    "Terça",
-    "Quarta",
-    "Quinta",
-    "Sexta",
-    "Sábado",
-  ];
-  return days[date.getDay()];
-};
-
-const startCountdown = () => {
-  const updateCountdown = () => {
-    const now = new Date();
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-    const distance = endOfDay.getTime() - now.getTime();
-
-    if (distance < 0) {
-      // Dia terminou - verificar se é domingo para mostrar vencedor semanal
-      if (now.getDay() === 0) {
-        // Domingo
-        showWeeklyResults();
-      }
-      // Recarrega a página para pegar nova batalha
-      router.reload();
-      return;
-    }
-
-    const hours = Math.floor(distance / (1000 * 60 * 60));
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-    const pad = (num: number) => String(num).padStart(2, "0");
-    setTimeRemaining(`${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`);
-  };
-
-  updateCountdown();
-  const interval = setInterval(updateCountdown, 1000);
-  return () => clearInterval(interval);
-};
-
-const updateWeekProgress = () => {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-  // Progresso baseado nos dias que já passaram (considerando segunda como início)
-  // Se for domingo (0), considerar 7 dias completos (100%)
-  const dayIndex = dayOfWeek === 0 ? 7 : dayOfWeek;
-  const weekProgressValue = Math.round((dayIndex / 7) * 100);
-  setWeekProgress(weekProgressValue); // Corrigido
-};
 
 interface BattleArenaProps {
   cervejas: any[];
@@ -99,6 +41,7 @@ interface DailyBattleState {
   status: "active" | "finished";
   day_of_week: number;
 }
+
 interface WeeklyStats {
   total_votes: number;
   most_voted_beer: any | null;
@@ -127,18 +70,18 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
   const [userDailyVote, setUserDailyVote] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (cervejas.length >= 2) {
-      loadUserInteractions();
-      initializeDailyBattle();
-    }
-  }, [cervejas]);
-
-  useEffect(() => {
-    setAnimateIn(true);
-    const timer = setTimeout(() => setAnimateIn(false), 1000);
-    return () => clearTimeout(timer);
-  }, [beer1, beer2]);
+  const getPortugueseDayName = (date: Date): string => {
+    const days = [
+      "Domingo",
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+    ];
+    return days[date.getDay()];
+  };
 
   // Inicializar ou carregar batalha diária
   const initializeDailyBattle = async () => {
@@ -209,7 +152,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
     const today = new Date();
     const battleDate = today.toISOString().split("T")[0];
-    const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+    const dayOfWeek = today.getDay();
 
     try {
       const { data: newBattle, error } = await supabase
@@ -256,7 +199,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
   // Selecionar cerveja aleatória considerando as usadas recentemente
   const selectRandomBeer = () => {
-    // Preferir cervejas que não foram usadas recentemente
     const recentBattles = JSON.parse(
       localStorage.getItem("recentBattles") || "[]"
     );
@@ -303,12 +245,9 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
       const distance = endOfDay.getTime() - now.getTime();
 
       if (distance < 0) {
-        // Dia terminou - verificar se é domingo para mostrar vencedor semanal
         if (now.getDay() === 0) {
-          // Domingo
           showWeeklyResults();
         }
-        // Nova batalha será carregada no próximo render
         return;
       }
 
@@ -327,8 +266,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
   // Atualizar progresso da semana
   const updateWeekProgress = () => {
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-    // Progresso baseado nos dias que já passaram (considerando segunda como início)
+    const dayOfWeek = today.getDay();
     const weekProgress =
       dayOfWeek === 0 ? 100 : Math.round((dayOfWeek / 7) * 100);
     setWeekProgress(weekProgress);
@@ -337,9 +275,8 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
   // Mostrar resultados semanais (domingo)
   const showWeeklyResults = async () => {
     try {
-      // Buscar estatísticas da semana
       const startOfWeek = new Date();
-      startOfWeek.setDate(startOfWeek.getDate() - 7); // Últimos 7 dias
+      startOfWeek.setDate(startOfWeek.getDate() - 7);
 
       const { data: weeklyBattles, error } = await supabase
         .from("batalha_diaria")
@@ -348,7 +285,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
       if (error) throw error;
 
-      // Calcular estatísticas
       const beerStats: { [key: string]: number } = {};
       let totalVotes = 0;
 
@@ -367,7 +303,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
         }
       );
 
-      // Encontrar cerveja mais votada
       let mostVotedBeerId: string | null = null;
       let maxVotes = 0;
 
@@ -384,7 +319,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
       // Incrementar Taça Breja na tabela RANKING
       if (mostVotedBeerId) {
-        // Primeiro verificar se já existe ranking para esta cerveja
         const { data: existingRanking, error: checkError } = await supabase
           .from("ranking")
           .select("taças_breja")
@@ -397,7 +331,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
         const currentTaças = existingRanking?.taças_breja || 0;
 
-        // Fazer UPSERT na tabela ranking
         const { error: updateError } = await supabase.from("ranking").upsert(
           {
             cerveja_id: mostVotedBeerId,
@@ -416,13 +349,11 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
           );
         } else {
           console.log(`🏆 Taça Breja incrementada para ${mostVotedBeer?.nome}`);
-
-          // Atualizar também o estado local se a cerveja estiver na batalha atual
           if (
             beer1?.uuid === mostVotedBeerId ||
             beer2?.uuid === mostVotedBeerId
           ) {
-            router.refresh(); // Recarregar dados
+            router.refresh();
           }
         }
       }
@@ -445,19 +376,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
     } catch (error) {
       console.error("Erro ao buscar resultados semanais:", error);
     }
-  };
-
-  const getPortugueseDayName = (date: Date): string => {
-    const days = [
-      "Domingo",
-      "Segunda",
-      "Terça",
-      "Quarta",
-      "Quinta",
-      "Sexta",
-      "Sábado",
-    ];
-    return days[date.getDay()];
   };
 
   const loadUserInteractions = async () => {
@@ -522,19 +440,10 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
       return;
     }
 
-    // Verificar se já votou hoje
     const today = new Date().toISOString().split("T")[0];
-    console.log("🗳️ Iniciando processo de voto para:", {
-      userId,
-      today,
-      beerId,
-    });
-
     const hasVotedToday = await checkDailyVote(userId, today);
-    console.log("✅ Resultado da verificação:", hasVotedToday);
 
     if (hasVotedToday) {
-      // Agora temos informação sobre qual cerveja foi votada
       if (userDailyVote) {
         const votedBeer = cervejas.find((b) => b.uuid === userDailyVote);
         toast({
@@ -557,7 +466,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
     setLoading(beerId);
 
     try {
-      // Registrar voto diário
       const { error: dailyVoteError } = await supabase
         .from("voto_diario")
         .insert({
@@ -569,7 +477,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
       if (dailyVoteError) throw dailyVoteError;
 
-      // Atualizar batalha diária se existir
       if (setDailyBattle) {
         if (!dailyBattle) {
           setLoading(null);
@@ -594,7 +501,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
         if (updateError) throw updateError;
 
         if (dailyVoteError) {
-          // Se for erro de duplicação, significa que já votou
           if (dailyVoteError.code === "23505") {
             toast({
               title: "Voto já realizado",
@@ -605,9 +511,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
           }
           throw dailyVoteError;
         }
-        console.log("✅ Voto registrado com sucesso para:", beerId);
 
-        // Atualizar estado local
         setDailyBattle((prev) =>
           prev
             ? {
@@ -619,7 +523,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
         );
       }
 
-      // Mostrar vencedor
       const winnerBeer = beerId === beer1.uuid ? beer1 : beer2;
       setWinner(winnerBeer);
       setShowWinner(true);
@@ -629,7 +532,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
         description: `Você escolheu ${winnerBeer.nome} na batalha de hoje!`,
       });
 
-      // Atualizar contagem
       setTimeout(() => {
         setBattleCount((prev) => prev + 1);
         setShowWinner(false);
@@ -662,107 +564,14 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
       if (error) {
         console.error("❌ ERRO na consulta:", error);
-        return false; // Não bloqueia em caso de erro
+        return false;
       }
 
       const hasVoted = data && data.length > 0;
-      console.log("📊 Resultado da verificação:", {
-        hasVoted,
-        votosEncontrados: data,
-      });
-
       return hasVoted;
     } catch (error) {
       console.error("ERRO INESPERADO:", error);
       return true;
-    }
-  };
-
-  useEffect(() => {
-    if (cervejas.length >= 2) {
-      loadUserInteractions();
-      selectRandomBeers();
-    }
-  }, [cervejas]);
-
-  useEffect(() => {
-    setAnimateIn(true);
-    const timer = setTimeout(() => setAnimateIn(false), 1000);
-    return () => clearTimeout(timer);
-  }, [beer1, beer2]);
-
-  // Selecionar duas cervejas aleatórias para batalha
-  const selectRandomBeers = () => {
-    if (cervejas.length < 2) return;
-
-    const availableCervejas = cervejas.filter(
-      (cerveja) =>
-        !usedPairs.has(getPairKey(beer1, cerveja)) &&
-        !usedPairs.has(getPairKey(beer2, cerveja))
-    );
-
-    if (availableCervejas.length < 2) {
-      setUsedPairs(new Set());
-      selectRandomBeers();
-      return;
-    }
-
-    const shuffled = [...availableCervejas].sort(() => Math.random() - 0.5);
-    const newBeer1 = shuffled[0];
-    const newBeer2 = shuffled[1];
-
-    setBeer1(newBeer1);
-    setBeer2(newBeer2);
-    setShowWinner(false);
-    setWinner(null);
-
-    const pairKey = getPairKey(newBeer1, newBeer2);
-    setUsedPairs((prev) => new Set([...prev, pairKey]));
-  };
-
-  const getPairKey = (beerA: any, beerB: any) => {
-    const ids = [beerA?.uuid, beerB?.uuid].sort();
-    return ids.join("_");
-  };
-
-  const cancelVote = async (beerId: string) => {
-    if (!userId) return;
-
-    setLoading(beerId);
-
-    try {
-      const { error } = await supabase
-        .from("voto")
-        .update({
-          deletado: true,
-          status: false,
-        })
-        .eq("usuario_id", userId)
-        .eq("cerveja_id", beerId)
-        .eq("deletado", false);
-
-      if (error) throw error;
-
-      setUserVotes((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(beerId);
-        return newSet;
-      });
-
-      toast({
-        title: "Voto removido",
-        description: "Seu voto foi cancelado.",
-      });
-
-      router.refresh();
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Ocorreu um erro ao cancelar o voto.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(null);
     }
   };
 
@@ -860,11 +669,18 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
     return num.toString();
   };
 
-  const getVotePercentage = (beer: any, totalVotos: number) => {
-    if (totalVotos === 0) return 0;
-    const ranking = getRankingData(beer);
-    return Math.round((ranking.total_votos / totalVotos) * 100);
-  };
+  useEffect(() => {
+    if (cervejas.length >= 2) {
+      loadUserInteractions();
+      initializeDailyBattle();
+    }
+  }, [cervejas]);
+
+  useEffect(() => {
+    setAnimateIn(true);
+    const timer = setTimeout(() => setAnimateIn(false), 1000);
+    return () => clearTimeout(timer);
+  }, [beer1, beer2]);
 
   if (!beer1 || !beer2) {
     return (
@@ -884,12 +700,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
   const ranking1 = getRankingData(beer1);
   const ranking2 = getRankingData(beer2);
-  const totalVotos = ranking1.total_votos + ranking2.total_votos;
-  const votePercentage1 = getVotePercentage(beer1, totalVotos);
-  const votePercentage2 = getVotePercentage(beer2, totalVotos);
 
-  const hasVoted1 = userVotes.has(beer1.uuid);
-  const hasVoted2 = userVotes.has(beer2.uuid);
   const isFavorite1 = userFavorites.has(beer1.uuid);
   const isFavorite2 = userFavorites.has(beer2.uuid);
 
@@ -910,37 +721,33 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
   return (
     <div className="space-y-8">
-      {/* Header da Batalha Diária */}
-      <div
-        className={`text-center space-y-4 transition-all duration-500 ${
-          animateIn ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-        }`}
-      >
+      {/* Header da Batalha Diária - CORES CORRIGIDAS */}
+      <div className={`text-center space-y-4 transition-all duration-500 ${animateIn ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
         <div className="flex items-center justify-center gap-3">
-          <Calendar className="h-7 w-7 text-yellow-500" />
-          <h1 className="font-bebas text-5xl md:text-6xl tracking-wide bg-gradient-to-r from-yellow-600 via-red-400 to-red-600 bg-clip-text text-transparent">
+          <Calendar className="h-7 w-7 text-primary" />
+          <h1 className="font-bebas text-5xl md:text-6xl tracking-wide bg-gradient-to-r from-primary via-beer-500 to-beer-600 bg-clip-text text-transparent">
             BATALHA DIÁRIA
           </h1>
-          <RotateCw className="h-7 w-7 text-blue-500" />
+          <RotateCw className="h-7 w-7 text-primary" />
         </div>
 
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-red-500 rounded-full text-white font-semibold shadow-lg">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-beer-500 rounded-full text-primary-foreground font-semibold shadow-lg">
             <Clock className="h-4 w-4" />
             <span>
               Hoje é {currentDay} - Termina em: {timeRemaining}
             </span>
           </div>
 
-          {/* Barra de Progresso da Semana */}
+          {/* Barra de Progresso da Semana - CORES CORRIGIDAS */}
           <div className="max-w-md mx-auto">
             <div className="flex justify-between text-sm text-muted-foreground mb-1">
               <span>Progresso da Semana</span>
               <span>{weekProgress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-muted rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-orange-500 to-red-300 h-2 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-primary to-beer-500 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${weekProgress}%` }}
               ></div>
             </div>
@@ -957,36 +764,33 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
         </div>
 
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-          <span className="font-bold bg-gradient-to-r from-[rgb(255_165_0)] to-[rgb(255_0_128)] bg-clip-text text-transparent">
+          <span className="font-bold bg-gradient-to-r from-primary to-beer-500 bg-clip-text text-transparent">
             Nova batalha todos os dias!
           </span>{" "}
           Escolha a cerveja que merece vencer hoje.
-          <span className="font-semibold text-yellow-600">
-            {" "}
-            Você pode votar uma vez por dia
-          </span>
+          <span className="font-semibold text-primary"> Você pode votar uma vez por dia</span>
           . Resultado semanal aos domingos!
         </p>
       </div>
 
-      {/* Vencedor Semanal (Domingo) */}
+      {/* Vencedor Semanal (Domingo) - CORES CORRIGIDAS */}
       {showWeeklyWinner && weeklyStats && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-3xl p-8 max-w-2xl mx-4 text-center shadow-2xl animate-in zoom-in duration-500">
+          <div className="bg-card border-2 border-primary rounded-3xl p-8 max-w-2xl mx-4 text-center shadow-2xl animate-in zoom-in duration-500">
             <div className="animate-bounce mb-4">
               <div className="relative">
-                <Award className="h-24 w-24 text-yellow-600 mx-auto" />
-                <Crown className="h-12 w-12 text-yellow-400 absolute -top-4 -right-4" />
+                <Award className="h-24 w-24 text-primary mx-auto" />
+                <Crown className="h-12 w-12 text-beer-400 absolute -top-4 -right-4" />
               </div>
             </div>
-            <h3 className="text-4xl font-bebas mb-4 bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+            <h3 className="text-4xl font-bebas mb-4 bg-gradient-to-r from-primary to-beer-600 bg-clip-text text-transparent">
               🏆 VENCEDOR DA SEMANA! 🏆
             </h3>
 
             {weeklyStats.most_voted_beer ? (
               <>
                 <div className="mb-6">
-                  <p className="text-2xl font-bold mb-2">
+                  <p className="text-2xl font-bold mb-2 text-foreground">
                     {weeklyStats.most_voted_beer.nome}
                   </p>
                   <p className="text-muted-foreground text-lg mb-4">
@@ -994,15 +798,12 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                   </p>
 
                   <div className="flex justify-center gap-6 text-sm mb-6">
-                    <Badge className="bg-yellow-500 text-white text-base px-4 py-2 border-2 border-yellow-300 animate-bounce">
+                    <Badge className="bg-primary text-primary-foreground text-base px-4 py-2 border-2 border-beer-300 animate-bounce">
                       🏆 +1 Taça Breja!
                     </Badge>
 
                     <Badge variant="secondary" className="text-base px-4 py-2">
-                      Total:{" "}
-                      {(weeklyStats.most_voted_beer.ranking?.[0]?.taças_breja ||
-                        0) + 1}{" "}
-                      Taças
+                      Total: {(weeklyStats.most_voted_beer.ranking?.[0]?.taças_breja || 0) + 1} Taças
                     </Badge>
                   </div>
                 </div>
@@ -1018,44 +819,38 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                   <Button
                     onClick={() => {
                       setShowWeeklyWinner(false);
-                      router.push(
-                        `/cerveja/${weeklyStats.most_voted_beer.uuid}`
-                      );
+                      router.push(`/cerveja/${weeklyStats.most_voted_beer.uuid}`);
                     }}
-                    className="h-12 bg-gradient-to-r from-yellow-500 to-orange-500"
+                    className="h-12 bg-gradient-to-r from-primary to-beer-500"
                   >
                     Ver Cerveja
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="text-muted-foreground">
-                Nenhum voto foi registrado esta semana.
-              </p>
+              <p className="text-muted-foreground">Nenhum voto foi registrado esta semana.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Winner Animation do Voto Diário */}
+      {/* Winner Animation do Voto Diário - CORES CORRIGIDAS */}
       {showWinner && winner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="from-card to-yellow-500/10 border-2 border-black-500 rounded-3xl p-8 max-w-md mx-4 text-center shadow-2xl animate-in zoom-in duration-500">
+          <div className="bg-card border-2 border-primary rounded-3xl p-8 max-w-md mx-4 text-center shadow-2xl animate-in zoom-in duration-500">
             <div className="animate-bounce mb-4">
               <div className="relative">
-                <Trophy className="h-20 w-20 text-green-500 mx-auto" />
-                <Sparkles className="h-8 w-8 text-green-300 absolute -top-2 -right-2" />
+                <Trophy className="h-20 w-20 text-primary mx-auto" />
+                <Sparkles className="h-8 w-8 text-beer-300 absolute -top-2 -right-2" />
               </div>
             </div>
-            <h3 className="text-3xl font-bebas mb-3 bg-gradient-to-r from-yellow-500 to-red-500 bg-clip-text text-transparent">
+            <h3 className="text-3xl font-bebas mb-3 bg-gradient-to-r from-primary to-beer-500 bg-clip-text text-transparent">
               🗳️ VOTO REGISTRADO! 🗳️
             </h3>
-            <p className="text-xl font-bold mb-2">{winner.nome}</p>
-            <p className="text-muted-foreground mb-4">
-              sua escolha de hoje foi registrada!
-            </p>
+            <p className="text-xl font-bold mb-2 text-foreground">{winner.nome}</p>
+            <p className="text-muted-foreground mb-4">sua escolha de hoje foi registrada!</p>
             <div className="w-full bg-secondary rounded-full h-2">
-              <div className="bg-gradient-to-r from-yellow-500 to-red-500 h-2 rounded-full transition-all duration-1000 animate-pulse"></div>
+              <div className="bg-gradient-to-r from-primary to-beer-500 h-2 rounded-full transition-all duration-1000 animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -1063,27 +858,19 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
       {/* Battle Arena */}
       <div className="grid gap-6 lg:gap-8 lg:grid-cols-2 relative">
-        {/* VS Badge */}
+        {/* VS Badge - CORES CORRIGIDAS */}
         <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-red-500 rounded-full blur-md opacity-75 animate-pulse"></div>
-            <Badge className="relative bg-gradient-to-r from-red-500 to-yellow-500 text-white px-8 py-4 text-xl font-bebas border-4 border-background shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-beer-500 rounded-full blur-md opacity-75 animate-pulse"></div>
+            <Badge className="relative bg-gradient-to-r from-primary to-beer-500 text-primary-foreground px-8 py-4 text-xl font-bebas border-4 border-background shadow-2xl">
               VS
             </Badge>
           </div>
         </div>
 
         {/* Beer 1 */}
-        <div
-          className={`transition-all duration-500 ${
-            animateIn ? "opacity-0 -translate-x-8" : "opacity-100 translate-x-0"
-          }`}
-        >
-          <Card
-            className={`beer-card group transition-all duration-300 relative overflow-hidden border-2 ${"border-border hover:border-green-500 hover:shadow-xl"} ${
-              loading === beer1.uuid ? "animate-pulse" : ""
-            }`}
-          >
+        <div className={`transition-all duration-500 ${animateIn ? "opacity-0 -translate-x-8" : "opacity-100 translate-x-0"}`}>
+          <Card className={`beer-card group transition-all duration-300 relative overflow-hidden border-2 ${"border-border hover:border-primary hover:shadow-xl"} ${loading === beer1.uuid ? "animate-pulse" : ""}`}>
             {/* Favorite Button */}
             <Button
               variant="ghost"
@@ -1099,7 +886,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
               <Heart
                 className={`h-5 w-5 transition-all ${
                   isFavorite1
-                    ? "fill-red-500 text-yellow-500 scale-110 animate-pulse"
+                    ? "fill-red-500 text-red-500 scale-110 animate-pulse"
                     : "text-muted-foreground hover:text-red-500 hover:scale-110"
                 }`}
               />
@@ -1107,7 +894,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
             {/* Daily Vote Percentage */}
             <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-10">
-              <Badge className="bg-green-500 text-white px-3 py-1 font-bold border-2 border-white">
+              <Badge className="bg-primary text-primary-foreground px-3 py-1 font-bold border-2 border-background">
                 {dailyPercentage1}%
               </Badge>
             </div>
@@ -1216,20 +1003,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                         </div>
                       </div>
                     </div>
-                    {beer1.estilo && (
-                      <Badge variant="secondary" className="text-xs">
-                        {beer1.estilo}
-                      </Badge>
-                    )}
-
-                    {ranking1.taças_breja > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-3 py-1">
-                          🏆 {ranking1.taças_breja} Taça
-                          {ranking1.taças_breja > 1 ? "s" : ""} Breja
-                        </Badge>
-                      </div>
-                    )}
 
                     <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                       <MessageCircle className="h-4 w-4 shrink-0" />
@@ -1255,14 +1028,22 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                       </div>
                     </div>
                   </div>
+
+                  {ranking1.taças_breja > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Badge className="bg-gradient-to-r from-primary to-beer-500 text-primary-foreground text-xs px-3 py-1">
+                        🏆 {ranking1.taças_breja} Taça
+                        {ranking1.taças_breja > 1 ? "s" : ""} Breja
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Link>
 
             <div className="px-6 pb-6">
               <Button
-                className="w-full h-12 text-base font-semibold transition-all duration-200 relative overflow-hidden text-black-100 hover:shadow-md hover:shadow-lg bg-gradient-to-r from-yellow-500 to-amber-400
-                hover:from-amber-400 hover:to-orange-600"
+                className="w-full h-12 text-base font-semibold transition-all duration-200 relative overflow-hidden text-primary-foreground hover:shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-beer-500 hover:from-beer-400 hover:to-beer-600"
                 size="lg"
                 disabled={!!loading}
                 onClick={(e) => {
@@ -1273,7 +1054,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
               >
                 {isBeer1Loading ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     Processando...
                   </div>
                 ) : userDailyVote ? (
@@ -1299,7 +1080,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
           }`}
         >
           <Card
-            className={`beer-card group transition-all duration-300 relative overflow-hidden border-2 ${"border-border hover:border-blue-500 hover:shadow-xl"} ${
+            className={`beer-card group transition-all duration-300 relative overflow-hidden border-2 ${"border-border hover:border-primary hover:shadow-xl"} ${
               loading === beer2.uuid ? "animate-pulse" : ""
             }`}
           >
@@ -1326,7 +1107,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
 
             {/* Daily Vote Percentage */}
             <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-10">
-              <Badge className="bg-blue-500 text-white px-3 py-1 font-bold border-2 border-white">
+              <Badge className="bg-primary text-primary-foreground px-3 py-1 font-bold border-2 border-background">
                 {dailyPercentage2}%
               </Badge>
             </div>
@@ -1369,6 +1150,12 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                       {beer2.marca}
                     </p>
                   </div>
+
+                  {beer2.estilo && (
+                    <Badge variant="secondary" className="text-xs">
+                      {beer2.estilo}
+                    </Badge>
+                  )}
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1428,27 +1215,6 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                         </div>
                       </div>
                     </div>
-                    {beer2.estilo && (
-                      <Badge variant="secondary" className="text-xs">
-                        {beer2.estilo}
-                      </Badge>
-                    )}
-
-                    {beer2.estilo && (
-                      <Badge variant="secondary" className="text-xs">
-                        {beer2.estilo}
-                      </Badge>
-                    )}
-
-                    {ranking2.taças_breja > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-3 py-1">
-                          🏆{ranking2.taças_breja} Taça
-                          {ranking2.taças_breja} Taça
-                          {ranking2.taças_breja > 1 ? "s" : ""} Breja
-                        </Badge>
-                      </div>
-                    )}
 
                     <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                       <MessageCircle className="h-4 w-4 shrink-0" />
@@ -1474,14 +1240,22 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
                       </div>
                     </div>
                   </div>
+
+                  {ranking2.taças_breja > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Badge className="bg-gradient-to-r from-primary to-beer-500 text-primary-foreground text-xs px-3 py-1">
+                        🏆 {ranking2.taças_breja} Taça
+                        {ranking2.taças_breja > 1 ? "s" : ""} Breja
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Link>
 
             <div className="px-6 pb-6">
               <Button
-                className="w-full h-12 text-base font-semibold transition-all duration-200 relative overflow-hidden text-black-100 hover:shadow-md hover:shadow-lg bg-gradient-to-r from-yellow-500 to-amber-400
-                hover:from-amber-400 hover:to-orange-600"
+                className="w-full h-12 text-base font-semibold transition-all duration-200 relative overflow-hidden text-primary-foreground hover:shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-beer-500 hover:from-beer-400 hover:to-beer-600"
                 size="lg"
                 disabled={!!loading}
                 onClick={(e) => {
@@ -1492,7 +1266,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
               >
                 {isBeer2Loading ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     Processando...
                   </div>
                 ) : userDailyVote === beer2.uuid ? (
@@ -1551,33 +1325,4 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
       </div>
     </div>
   );
-}
-
-function setDailyBattle(arg0: {
-  id: any;
-  beer1: any;
-  beer2: any;
-  battle_date: any;
-  votes_beer1: any;
-  votes_beer2: any;
-  winner_beer_id: any;
-  status: any;
-  day_of_week: any;
-}) {
-  throw new Error("Function not implemented.");
-}
-function setCurrentDay(arg0: string) {
-  throw new Error("Function not implemented.");
-}
-
-function setTimeRemaining(arg0: string) {
-  throw new Error("Function not implemented.");
-}
-
-function setWeekProgress(weekProgressValue: number) {
-  throw new Error("Function not implemented.");
-}
-
-function showWeeklyResults() {
-  throw new Error("Function not implemented.");
 }

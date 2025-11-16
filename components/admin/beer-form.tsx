@@ -69,25 +69,31 @@ export function BeerForm({ cerveja }: BeerFormProps) {
   })
 
   // Buscar proprietários existentes
-  useEffect(() => {
-    const fetchProprietarios = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("proprietario")
-          .select("uuid, nome, cnpj, endereco, email, telefone")
-          .eq("deletado", false)
-          .eq("status", true)
-          .order("nome")
+ // ✅ CORREÇÃO: No useEffect que busca proprietários
+useEffect(() => {
+  const fetchProprietarios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("proprietario")
+        .select("uuid, nome, cnpj, endereco, email, telefone")
+        .eq("deletado", false)
+        .eq("status", true)
+        .order("nome")
 
-        if (error) throw error
-        setProprietarios(data || [])
-      } catch (error) {
-        console.error("Erro ao buscar proprietários:", error)
+      if (error) throw error
+      setProprietarios(data || [])
+      
+      // ✅ CORREÇÃO: Definir proprietário selecionado se houver cerveja
+      if (cerveja?.proprietario_id) {
+        setSelectedProprietario(cerveja.proprietario_id)
       }
+    } catch (error) {
+      console.error("Erro ao buscar proprietários:", error)
     }
+  }
 
-    fetchProprietarios()
-  }, [supabase])
+  fetchProprietarios()
+}, [supabase, cerveja?.proprietario_id]) // ✅ Adicionar dependência
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
