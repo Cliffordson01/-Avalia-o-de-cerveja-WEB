@@ -1,16 +1,17 @@
+// app/admin/cerveja/[id]/page.tsx - CORRIGIDO PARA NEXT.JS 15
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect, notFound } from "next/navigation"
 import { BeerForm } from "@/components/admin/beer-form"
 
 interface EditBeerPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function EditBeerPage({ params }: EditBeerPageProps) {
+  const { id } = await params
   const supabase = await getSupabaseServerClient()
-  const { id } = params
 
   const {
     data: { user },
@@ -20,18 +21,18 @@ export default async function EditBeerPage({ params }: EditBeerPageProps) {
     redirect("/login")
   }
 
-  // Check if user is admin usando role
+  // Check if user is admin
   const { data: usuario } = await supabase
     .from("usuario")
     .select("role")
-    .eq("uuid", user.id)
+    .eq("auth_id", user.id)
     .single()
 
   if (usuario?.role !== 'admin') {
     redirect("/")
   }
 
-  // Get beer data with related information
+  // Get beer data
   const { data: cerveja, error } = await supabase
     .from("cerveja")
     .select(`

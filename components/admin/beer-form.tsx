@@ -1,3 +1,4 @@
+// components/admin/beer-form.tsx - VERSÃO CORRIGIDA
 "use client"
 
 import type React from "react"
@@ -39,22 +40,25 @@ export function BeerForm({ cerveja }: BeerFormProps) {
   const [selectedProprietario, setSelectedProprietario] = useState<string>(cerveja?.proprietario_id || "")
   const [showNewProprietario, setShowNewProprietario] = useState(false)
   
+  // ✅ CORREÇÃO: Garantir que informacao seja um objeto
+  const informacao = cerveja?.informacao?.[0] || cerveja?.informacao || {}
+
   const [formData, setFormData] = useState({
     // Informações básicas da cerveja
     nome: cerveja?.nome || "",
     marca: cerveja?.marca || "",
     
-    // Informações técnicas (tabela informacao)
-    teor_alcoolico: cerveja?.informacao?.[0]?.teor_alcoolico?.toString() || "",
-    amargor: cerveja?.informacao?.[0]?.amargor?.toString() || "",
-    origem: cerveja?.informacao?.[0]?.origem || "",
-    aparencia: cerveja?.informacao?.[0]?.aparencia || "",
-    aroma: cerveja?.informacao?.[0]?.aroma || "",
-    sabor: cerveja?.informacao?.[0]?.sabor || "",
-    corpo_textura: cerveja?.informacao?.[0]?.corpo_textura || "",
-    harmonizacao: cerveja?.informacao?.[0]?.harmonizacao || "",
-    temperatura_ideal: cerveja?.informacao?.[0]?.temperatura_ideal || "",
-    impressao_geral: cerveja?.informacao?.[0]?.impressao_geral || "",
+    // Informações técnicas (tabela informacao) - USANDO A CORREÇÃO
+    teor_alcoolico: informacao?.teor_alcoolico?.toString() || "",
+    amargor: informacao?.amargor?.toString() || "",
+    origem: informacao?.origem || "",
+    aparencia: informacao?.aparencia || "",
+    aroma: informacao?.aroma || "",
+    sabor: informacao?.sabor || "",
+    corpo_textura: informacao?.corpo_textura || "",
+    harmonizacao: informacao?.harmonizacao || "",
+    temperatura_ideal: informacao?.temperatura_ideal || "",
+    impressao_geral: informacao?.impressao_geral || "",
     
     // Campos para novo proprietário
     proprietario_nome: "",
@@ -251,13 +255,16 @@ export function BeerForm({ cerveja }: BeerFormProps) {
         impressao_geral: formData.impressao_geral || null,
       }
 
+      // ✅ CORREÇÃO: Usar a variável informacao corrigida
+      const informacaoExistente = cerveja?.informacao?.[0]?.uuid || cerveja?.informacao?.uuid
+
       // Verificar se já existe informação para esta cerveja
-      if (cerveja?.informacao?.[0]?.uuid) {
+      if (informacaoExistente) {
         // Atualizar informação existente
         const { error } = await supabase
           .from("informacao")
           .update(informacaoData)
-          .eq("uuid", cerveja.informacao[0].uuid)
+          .eq("uuid", informacaoExistente)
 
         if (error) throw error
       } else {

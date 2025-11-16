@@ -1,195 +1,160 @@
-// components/beer-card.tsx (CORRIGIDO)
+// components/beer-card.tsx - ADAPTADO PARA TEMAS
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
-import { Star, MessageCircle, TrendingUp, Heart, Trophy } from "lucide-react"
+import { Star, MessageCircle, TrendingUp, Heart } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import type { CervejaComDetalhes, Selo, Ranking } from "@/lib/types"
-import { cn, getBeerImageUrl } from "@/lib/utils"
-import { BeerActions } from "@/components/beer-actions" 
+import type { CervejaComDetalhes } from "@/lib/types"
+import { getBeerImageUrl } from "@/lib/utils"
+import { BeerActions } from "@/components/beer-actions"
+import { CustomImage } from "@/components/custom-image"
 
 interface BeerCardProps {
   cerveja: CervejaComDetalhes
   userId?: string 
   showActions?: boolean
+  priority?: boolean
 }
 
-// Interface extendida para o selo
-interface SeloComImagem extends Selo {
-  tipo_selo?: string
-  imagem_url?: string
-}
-
-// Interface para os dados de ranking
-interface RankingData {
-  media_avaliacao: number
-  total_votos: number
-  total_comentarios: number
-  total_favoritos: number
-  taças_breja?: number
-  posicao?: number | null
-}
-
-export function BeerCard({ cerveja, userId, showActions = true }: BeerCardProps) {
-  // CORREÇÃO: Garantir que rankingData seja um objeto, não array
+export function BeerCard({ cerveja, userId, showActions = true, priority = false }: BeerCardProps) {
   const rankingData = cerveja.ranking && !Array.isArray(cerveja.ranking) 
-    ? cerveja.ranking as RankingData
+    ? cerveja.ranking
     : (cerveja.ranking && Array.isArray(cerveja.ranking) && cerveja.ranking.length > 0 
-        ? cerveja.ranking[0] as RankingData 
+        ? cerveja.ranking[0] 
         : null)
 
-  // CORREÇÃO: Garantir que selo seja um objeto, não array
-  const selo = cerveja.selo && !Array.isArray(cerveja.selo) 
-    ? cerveja.selo as SeloComImagem 
-    : (cerveja.selo && Array.isArray(cerveja.selo) && cerveja.selo.length > 0 
-        ? cerveja.selo[0] as SeloComImagem 
-        : undefined)
-  // Dados padrão para quando não há ranking
-  const defaultRankingData: RankingData = {
+  const displayData = rankingData || {
     media_avaliacao: 0,
     total_votos: 0,
-    total_comentarios: 0,
     total_favoritos: 0,
-    taças_breja: 0,
+    total_comentarios: 0,
     posicao: null
   }
 
-  // Usar dados reais se existirem, senão usar os padrões
-  const displayData = rankingData || defaultRankingData
-
-  // URLs dos selos no Supabase Storage
-  const getSeloImageUrl = (posicao: number) => {
-    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!baseUrl) return '';
-    
-    if (posicao === 1) return `${baseUrl}/storage/v1/object/public/selos/ouro.png`;
-    if (posicao === 2) return `${baseUrl}/storage/v1/object/public/selos/prata.png`;
-    if (posicao === 3) return `${baseUrl}/storage/v1/object/public/selos/bronze.png`;
-    return '';
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+    return num.toString()
   }
 
-  // Função para renderizar o selo baseado na posição ou tipo
-  const renderSelo = () => {
-    const posicao = displayData.posicao;
-    const seloImageUrl = posicao && posicao <= 3 ? getSeloImageUrl(posicao) : null;
-    
-    // Selo por posição (Top 1, Top 2, Top 3) - USANDO IMAGENS DO STORAGE
-    if (posicao && posicao <= 3 && seloImageUrl) {
-      return (
-        <div className="absolute left-3 top-3 z-10">
-          <div className="relative h-16 w-16">
-            <Image
+  // URLs dos selos no Supabase Storage
+  const getSeloImage = () => {
+    const posicao = displayData.posicao
+    if (!posicao || posicao > 3) return null
+
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!baseUrl) return null
+
+    switch (posicao) {
+      case 1:
+        return `${baseUrl}/storage/v1/object/public/selos/ouro.png`
+      case 2:
+        return `${baseUrl}/storage/v1/object/public/selos/prata.png`
+      case 3:
+        return `${baseUrl}/storage/v1/object/public/selos/bronze.png`
+      default:
+        return null
+    }
+  }
+
+  const seloImageUrl = getSeloImage()
+  const beerImageUrl = getBeerImageUrl(cerveja.imagem_url || cerveja.imagem_main)
+
+  return (
+    <Card className="group relative overflow-hidden border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-500 hover:border-primary/50 hover:shadow-xl hover:scale-[1.02]">
+      {/* Efeito de brilho hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Selo de Ranking */}
+      {seloImageUrl && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14">
+            <CustomImage
               src={seloImageUrl}
-              alt={`Top ${posicao}`}
-              fill
+              alt={`Selo ${displayData.posicao}º lugar`}
               className="object-contain drop-shadow-lg"
-              onError={(e) => {
-                // Fallback para badge se a imagem não carregar
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
+              priority={priority}
             />
           </div>
         </div>
-      );
-    }
-
-    // Fallback: Selo por tipo (Ouro, Prata, Bronze, Empatado) como badge
-    const tipoSelo = selo?.tipo_selo || '';
-    if (tipoSelo) {
-      return (
-        <Badge 
-          className={cn("absolute left-3 top-3 z-10 font-semibold", 
-            tipoSelo === "ouro" && "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg",
-            tipoSelo === "prata" && "bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg", 
-            tipoSelo === "bronze" && "bg-gradient-to-r from-amber-700 to-amber-800 text-white shadow-lg",
-            tipoSelo === "empatado" && "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg",
-            !["ouro", "prata", "bronze", "empatado"].includes(tipoSelo) && "bg-gradient-to-r from-red-500 to-blue-600 text-white shadow-lg"
-          )}
-        >
-          {tipoSelo === "ouro" && "🥇 Ouro"}
-          {tipoSelo === "prata" && "🥈 Prata"}
-          {tipoSelo === "bronze" && "🥉 Bronze"}
-          {tipoSelo === "empatado" && "🤝 Empatado"}
-          {!["ouro", "prata", "bronze", "empatado"].includes(tipoSelo) && `🏆 ${tipoSelo}`}
-        </Badge>
-      );
-    }
-
-    return null;
-  }
-
-  // Formatar números para exibição (1K, 1M, etc)
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-  }
-
-  return (
-    <Card className="beer-card group relative overflow-hidden transition-all duration-300 hover:shadow-lg">
-      {/* SELO */}
-      {renderSelo()}
+      )}
 
       <Link href={`/cerveja/${cerveja.uuid}`}>
-        <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-          <Image
-            src={getBeerImageUrl(cerveja.imagem_url || cerveja.imagem_main) || "/placeholder.svg"}
+        <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-muted to-muted/80">
+          <CustomImage
+            src={beerImageUrl || "/placeholder-beer.png"}
             alt={cerveja.nome}
+            className="transition-all duration-700 group-hover:scale-110 group-hover:rotate-2"
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            priority={priority}
           />
+          
+          {/* Overlay gradiente adaptável ao tema */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
         </div>
       </Link>
 
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4 relative z-10">
         <Link href={`/cerveja/${cerveja.uuid}`}>
-          <h3 className="mb-1 font-semibold text-lg leading-tight text-balance transition-colors group-hover:text-primary line-clamp-2">
+          <h3 className="mb-1 sm:mb-2 font-bebas text-lg sm:text-xl leading-tight text-card-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 tracking-wide">
             {cerveja.nome}
           </h3>
         </Link>
-        <p className="mb-2 text-sm text-muted-foreground line-clamp-1">{cerveja.marca}</p>
+        
+        <p className="mb-2 sm:mb-3 text-muted-foreground text-xs sm:text-sm font-semibold line-clamp-1">
+          {cerveja.marca}
+        </p>
 
-        {/* INFORMAÇÕES SEMPRE VISÍVEIS - COM NÚMEROS REAIS */}
-        <div className="mb-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+        {/* Rating com destaque */}
+        <div className="flex items-center gap-2 mb-2 sm:mb-3 p-1 sm:p-2 bg-accent/30 rounded-lg">
           <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-primary text-primary shrink-0" />
-            <span className="font-medium">{displayData.media_avaliacao.toFixed(1)}</span>
-            <span className="text-xs">avaliação</span>
+            <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-500 text-yellow-500" />
+            <span className="font-bold text-accent-foreground text-xs sm:text-sm">
+              {displayData.media_avaliacao.toFixed(1)}
+            </span>
           </div>
-          
-          <div className="flex items-center gap-1">
-            <TrendingUp className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{formatNumber(displayData.total_votos)}</span>
-            <span className="text-xs">votos</span> 
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <MessageCircle className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{formatNumber(displayData.total_comentarios)}</span>
-            <span className="text-xs">comentários</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Heart className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{formatNumber(displayData.total_favoritos)}</span>
-            <span className="text-xs">favoritos</span>
-          </div>
-
-          
-
-
+          <div className="h-2 sm:h-3 w-px bg-border/50"></div>
+          <span className="text-xs text-muted-foreground">
+            {formatNumber(displayData.total_votos)} avaliações
+          </span>
         </div>
 
+        {/* Estatísticas em grid */}
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 mb-3 sm:mb-4">
+          <div className="text-center p-1 sm:p-2 bg-accent/20 rounded-lg">
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mx-auto mb-1" />
+            <div className="text-xs text-accent-foreground font-semibold">
+              {formatNumber(displayData.total_votos)}
+            </div>
+            <div className="text-[10px] sm:text-[10px] text-muted-foreground">Votos</div>
+          </div>
+          
+          <div className="text-center p-1 sm:p-2 bg-accent/20 rounded-lg">
+            <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 mx-auto mb-1" />
+            <div className="text-xs text-accent-foreground font-semibold">
+              {formatNumber(displayData.total_comentarios)}
+            </div>
+            <div className="text-[10px] sm:text-[10px] text-muted-foreground">Coment.</div>
+          </div>
+
+          <div className="text-center p-1 sm:p-2 bg-accent/20 rounded-lg">
+            <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 mx-auto mb-1" />
+            <div className="text-xs text-accent-foreground font-semibold">
+              {formatNumber(displayData.total_favoritos)}
+            </div>
+            <div className="text-[10px] sm:text-[10px] text-muted-foreground">Favoritos</div>
+          </div>
+        </div>
+
+        {/* Ações do usuário */}
         {showActions && (
-          <BeerActions cerveja={cerveja} userId={userId} size="sm" />
+          <div className="border-t border-border/30 pt-2 sm:pt-3">
+            <BeerActions 
+              cerveja={cerveja} 
+              userId={userId} 
+              size="sm" 
+            />
+          </div>
         )}
       </CardContent>
     </Card>

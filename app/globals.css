@@ -1,13 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* NOTE: @custom-variant e @theme inline são extensões do Tailwind/PostCSS e podem 
-   causar avisos (Warnings), mas o compilador deve aceitar a sintaxe após a correção. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Beer-themed color palette */
-  --background: oklch(0.98 0.01 85);
+  /* Light Theme - Fresh & Refreshing Beer Colors */
+  --background: oklch(0.99 0.01 95);
   --foreground: oklch(0.15 0.02 60);
 
   --card: oklch(1 0 0);
@@ -16,30 +14,30 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 60);
 
-  /* Amber/Gold primary for beer theme */
-  --primary: oklch(0.65 0.15 75);
-  --primary-foreground: oklch(0.15 0.02 60);
+  /* Primary - Fresh Golden Beer Color */
+  --primary: oklch(0.65 0.18 85);
+  --primary-foreground: oklch(0.99 0.01 95);
 
-  --secondary: oklch(0.95 0.01 85);
+  --secondary: oklch(0.97 0.01 95);
   --secondary-foreground: oklch(0.15 0.02 60);
 
-  --muted: oklch(0.96 0.01 85);
-  --muted-foreground: oklch(0.5 0.02 60);
+  --muted: oklch(0.96 0.01 95);
+  --muted-foreground: oklch(0.45 0.02 60);
 
-  --accent: oklch(0.92 0.03 75);
+  --accent: oklch(0.94 0.03 85);
   --accent-foreground: oklch(0.15 0.02 60);
 
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
 
-  --border: oklch(0.9 0.01 85);
-  --input: oklch(0.9 0.01 85);
-  --ring: oklch(0.65 0.15 75);
+  --border: oklch(0.92 0.01 95);
+  --input: oklch(0.92 0.01 95);
+  --ring: oklch(0.65 0.18 85);
 
-  /* Gold, Silver, Bronze for medals */
-  --gold: oklch(0.75 0.15 85);
-  --silver: oklch(0.8 0.01 0);
-  --bronze: oklch(0.6 0.1 50);
+  /* Fresh Medal Colors */
+  --gold: oklch(0.75 0.18 85);
+  --silver: oklch(0.85 0.05 0);
+  --bronze: oklch(0.65 0.12 55);
 
   --radius: 0.75rem;
   --chart-1: oklch(0.646 0.222 41.116);
@@ -50,7 +48,7 @@
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.985  ͏0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
@@ -58,32 +56,33 @@
 }
 
 .dark {
-  --background: oklch(0.12 0.02 60);
+  /* Dark Theme - Rich Beer Colors (seu tema atual) */
+  --background: oklch(0.15 0.02 60);
   --foreground: oklch(0.95 0.01 85);
 
-  --card: oklch(0.15 0.02 60);
+  --card: oklch(0.20 0.02 60);
   --card-foreground: oklch(0.95 0.01 85);
 
-  --popover: oklch(0.15 0.02 60);
+  --popover: oklch(0.20 0.02 60);
   --popover-foreground: oklch(0.95 0.01 85);
 
   --primary: oklch(0.7 0.15 75);
-  --primary-foreground: oklch(0.12 0.02 60);
+  --primary-foreground: oklch(0.15 0.02 60);
 
-  --secondary: oklch(0.2 0.02 60);
+  --secondary: oklch(0.25 0.02 60);
   --secondary-foreground: oklch(0.95 0.01 85);
 
-  --muted: oklch(0.2 0.02 60);
+  --muted: oklch(0.25 0.02 60);
   --muted-foreground: oklch(0.6 0.02 60);
 
-  --accent: oklch(0.25 0.03 75);
+  --accent: oklch(0.30 0.03 75);
   --accent-foreground: oklch(0.95 0.01 85);
 
   --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.95 0.01 85);
 
-  --border: oklch(0.25 0.02 60);
-  --input: oklch(0.25 0.02 60);
+  --border: oklch(0.30 0.02 60);
+  --input: oklch(0.30 0.02 60);
   --ring: oklch(0.7 0.15 75);
 
   --gold: oklch(0.75 0.15 85);
@@ -102,6 +101,38 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+}
+
+/* Fresh Theme - Alternative Light Theme */
+.fresh {
+  --background: oklch(0.99 0.005 240);
+  --foreground: oklch(0.18 0.02 260);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 260);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 260);
+
+  --primary: oklch(0.6 0.15 200);
+  --primary-foreground: oklch(0.99 0.005 240);
+
+  --secondary: oklch(0.97 0.01 240);
+  --secondary-foreground: oklch(0.18 0.02 260);
+
+  --muted: oklch(0.96 0.01 240);
+  --muted-foreground: oklch(0.5 0.02 260);
+
+  --accent: oklch(0.92 0.03 200);
+  --accent-foreground: oklch(0.18 0.02 260);
+
+  --border: oklch(0.9 0.01 240);
+  --input: oklch(0.9 0.01 240);
+  --ring: oklch(0.6 0.15 200);
+
+  --gold: oklch(0.7 0.15 85);
+  --silver: oklch(0.8 0.05 0);
+  --bronze: oklch(0.65 0.12 55);
 }
 
 @theme inline {
@@ -154,14 +185,13 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
   }
 }
 
-/* Custom animations for beer cards */
+/* Custom animations */
 @keyframes float {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0px);
   }
   50% {
@@ -169,16 +199,92 @@
   }
 }
 
+@keyframes themeSwitch {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(0.8) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
 
-/* Smooth hover transitions */
+.animate-theme-switch {
+  animation: themeSwitch 0.4s ease-out;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for light theme */
+:root {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f8fafc;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #f5c044;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #e6a61c;
+  }
+}
+
+.dark {
+  &::-webkit-scrollbar-track {
+    background: #1e293b;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #f59e0b;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #d97706;
+  }
+}
+
+/* Beer card hover effects */
 .beer-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .beer-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .beer-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Theme transition */
+.theme-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

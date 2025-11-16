@@ -1,7 +1,8 @@
+// components/header.tsx - VERSÃO MAIS OTIMIZADA
 "use client"
 
 import Link from "next/link"
-import { Beer, User, LogOut, Settings, Shield, Menu, X } from "lucide-react"
+import { Beer, User, LogOut, Shield, Menu, X, Sun, Moon, Palette } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -10,118 +11,107 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
+import { useState, memo } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { useTheme } from "@/components/providers/theme-provider"
+import { useAuth } from "@/components/contexts/AuthContext"
 
-export function Header() {
-  const router = useRouter()
-  const supabase = getSupabaseBrowserClient()
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+// ✅ COMPONENTE MEMORIZADO PARA NAVEGAÇÃO
+const NavigationLinks = memo(({ mobile = false, onLinkClick }: { mobile?: boolean; onLinkClick?: () => void }) => (
+  <>
+    <Link 
+      href="/" 
+      className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
+      onClick={onLinkClick}
+    >
+      Início
+    </Link>
+    <Link
+      href="/cervejas"
+      className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
+      onClick={onLinkClick}
+    >
+      Cervejas
+    </Link>
+    <Link
+      href="/ranking"
+      className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
+      onClick={onLinkClick}
+    >
+      Ranking
+    </Link>
+    <Link
+      href="/batalha"
+      className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
+      onClick={onLinkClick}
+    >
+      Batalha VS
+    </Link>
+  </>
+))
 
-  useEffect(() => {
-    const checkUserAndAdmin = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
-        
-        if (user) {
-          // Verificar se usuário é admin na tabela usuario
-          const { data: userData } = await supabase
-            .from("usuario")
-            .select("role")
-            .eq("uuid", user.id)
-            .single()
+NavigationLinks.displayName = 'NavigationLinks'
 
-          setIsAdmin(userData?.role === 'admin')
-        } else {
-          setIsAdmin(false)
-        }
-      } catch (error) {
-        console.error("Erro ao verificar usuário:", error)
-        setIsAdmin(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkUserAndAdmin()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        // Verificar admin quando o auth state muda
-        try {
-          const { data: userData } = await supabase
-            .from("usuario")
-            .select("role")
-            .eq("uuid", session.user.id)
-            .single()
-
-          setIsAdmin(userData?.role === 'admin')
-        } catch (error) {
-          console.error("Erro ao verificar admin:", error)
-          setIsAdmin(false)
-        }
-      } else {
-        setIsAdmin(false)
-      }
-      setIsLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    setIsMobileMenuOpen(false)
-    router.push("/")
-    router.refresh()
+// ✅ COMPONENTE MEMORIZADO PARA TOGGLE DE TEMA
+const ThemeToggle = memo(({ mobile = false }: { mobile?: boolean }) => {
+  const { theme, setTheme } = useTheme()
+  
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'fresh') => {
+    setTheme(newTheme)
   }
 
-  const NavigationLinks = ({ mobile = false }: { mobile?: boolean }) => (
-    <>
-      <Link 
-        href="/" 
-        className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
-        onClick={() => mobile && setIsMobileMenuOpen(false)}
-      >
-        Início
-      </Link>
-      <Link
-        href="/cervejas"
-        className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
-        onClick={() => mobile && setIsMobileMenuOpen(false)}
-      >
-        Cervejas
-      </Link>
-      <Link
-        href="/ranking"
-        className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
-        onClick={() => mobile && setIsMobileMenuOpen(false)}
-      >
-        Ranking
-      </Link>
-      <Link
-        href="/batalha"
-        className={`${mobile ? "text-lg py-3 border-b border-border" : "text-sm"} font-medium text-muted-foreground transition-colors hover:text-foreground`}
-        onClick={() => mobile && setIsMobileMenuOpen(false)}
-      >
-        Batalha VS
-      </Link>
-    </>
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant={mobile ? "ghost" : "outline"} 
+          size={mobile ? "sm" : "icon"}
+          className={mobile ? "w-full justify-start" : "h-9 w-9"}
+        >
+          {theme === 'light' && <Sun className="h-4 w-4" />}
+          {theme === 'dark' && <Moon className="h-4 w-4" />}
+          {theme === 'fresh' && <Palette className="h-4 w-4" />}
+          {mobile && <span className="ml-2">Tema</span>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleThemeChange('light')} className="flex items-center gap-2">
+          <Sun className="h-4 w-4" />
+          <span>Light</span>
+          {theme === 'light' && <div className="w-2 h-2 bg-primary rounded-full ml-auto" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleThemeChange('dark')} className="flex items-center gap-2">
+          <Moon className="h-4 w-4" />
+          <span>Dark</span>
+          {theme === 'dark' && <div className="w-2 h-2 bg-primary rounded-full ml-auto" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleThemeChange('fresh')} className="flex items-center gap-2">
+          <Palette className="h-4 w-4" />
+          <span>Fresh</span>
+          {theme === 'fresh' && <div className="w-2 h-2 bg-primary rounded-full ml-auto" />}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
+})
+
+ThemeToggle.displayName = 'ThemeToggle'
+
+export function Header() {
+  const { user, isAdmin, isLoading, signOut } = useAuth()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const handleSignOut = async () => {
+    await signOut()
+    setIsMobileMenuOpen(false)
+  }
+
+  const handleMobileLinkClick = () => {
+    setIsMobileMenuOpen(false)
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 theme-transition">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 flex-shrink-0">
@@ -130,12 +120,17 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-4z lg:gap-6">
+        <nav className="hidden md:flex items-center gap-4 lg:gap-6">
           <NavigationLinks />
         </nav>
 
         {/* User Menu / Auth */}
         <div className="flex items-center gap-2">
+          {/* Theme Toggle - Desktop */}
+          <div className="hidden md:block">
+            <ThemeToggle />
+          </div>
+
           {/* Desktop User Menu */}
           <div className="hidden md:block">
             {!isLoading && user ? (
@@ -159,7 +154,6 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   
-                  {/* Seção Admin */}
                   {isAdmin && (
                     <>
                       <DropdownMenuSeparator />
@@ -188,28 +182,29 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile Menu Trigger */}
+          {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[50vw] max-w-sm">
+            <SheetContent side="right" className="w-[85vw] max-w-sm theme-transition">
               <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
 
-              {/* Logo no Mobile Menu */}
               <div className="flex items-center gap-2 mb-8 pt-4">
                 <Beer className="h-6 w-6 text-primary" />
                 <span className="font-bebas text-2xl tracking-wide text-foreground">TopBreja</span>
               </div>
 
-              {/* Mobile Navigation Links */}
+              <div className="mb-6 px-2">
+                <ThemeToggle mobile />
+              </div>
+
               <nav className="flex flex-col space-y-3 px-4 pt-4">
-                <NavigationLinks mobile />
+                <NavigationLinks mobile onLinkClick={handleMobileLinkClick} />
               </nav>
 
-              {/* Mobile User Section */}
               <div className="mt-8 pt-6 border-t border-border">
                 {!isLoading && user ? (
                   <div className="space-y-4">
@@ -231,7 +226,7 @@ export function Header() {
                       <Link
                         href="/perfil"
                         className="flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={handleMobileLinkClick}
                       >
                         <User className="h-4 w-4" />
                         Meu Perfil
@@ -239,7 +234,7 @@ export function Header() {
                       <Link
                         href="/favoritos"
                         className="flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={handleMobileLinkClick}
                       >
                         <Beer className="h-4 w-4" />
                         Favoritos
@@ -249,7 +244,7 @@ export function Header() {
                         <Link
                           href="/admin"
                           className="flex items-center gap-3 px-2 py-2 text-sm text-yellow-600 font-semibold hover:text-yellow-700 transition-colors"
-                          onClick={() => setIsMobileMenuOpen(false)}
+                          onClick={handleMobileLinkClick}
                         >
                           <Shield className="h-4 w-4" />
                           Painel Admin
@@ -270,10 +265,10 @@ export function Header() {
                   </div>
                 ) : !isLoading ? (
                   <div className="space-y-3">
-                    <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button asChild className="w-full" onClick={handleMobileLinkClick}>
                       <Link href="/login">Entrar</Link>
                     </Button>
-                    <Button asChild variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button asChild variant="outline" className="w-full" onClick={handleMobileLinkClick}>
                       <Link href="/cadastro">Cadastrar</Link>
                     </Button>
                   </div>
@@ -287,7 +282,7 @@ export function Header() {
             </SheetContent>
           </Sheet>
 
-          {/* Mobile User Icon (outside sheet) */}
+          {/* Mobile User Icon */}
           {!isLoading && user && (
             <div className="md:hidden">
               <DropdownMenu>

@@ -1,3 +1,4 @@
+// components/admin/beer-management-table.tsx - VERSÃO CORRIGIDA
 "use client"
 
 import { useState, useMemo } from "react"
@@ -12,7 +13,7 @@ import {
   Search, 
   Filter, 
   X,
-  Trophy  // Adicione esta importação
+  Trophy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -488,7 +489,7 @@ export function BeerManagementTable({ cervejas }: BeerManagementTableProps) {
                       )}
                     </TableCell>
 
-                    {/* Ações */}
+                    {/* ✅ CORREÇÃO AQUI: Ações com link de edição correto */}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
@@ -501,16 +502,26 @@ export function BeerManagementTable({ cervejas }: BeerManagementTableProps) {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          title="Editar"
-                        >
-                          <Link href={`/admin/cerveja/${cerveja.uuid}`}>
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        
+                       <Button
+  variant="ghost"
+  size="sm"
+  asChild
+  title="Editar"
+  onClick={(e) => {
+    console.log('🔍 DEBUG - Botão Editar clicado:', {
+      cervejaId: cerveja.uuid,
+      cervejaNome: cerveja.nome,
+      url: `/admin/cerveja/editar/${cerveja.uuid}`,
+      event: e
+    })
+  }}
+>
+  <Link href={`/admin/cerveja/editar/${cerveja.uuid}`}>
+    <Edit className="h-4 w-4" />
+  </Link>
+</Button>
+                        
                         <Button
                           variant="ghost"
                           size="sm"
