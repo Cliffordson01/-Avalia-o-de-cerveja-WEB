@@ -1,4 +1,4 @@
-// app/perfil/page.tsx
+// app/perfil/page.tsx - VERSÃO CORRIGIDA
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,12 +6,101 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Heart, MessageCircle, Star, Beer } from "lucide-react"
 import Link from "next/link"
-import { ProfileImageUploader } from "@/components/profile-image-uploader" 
-import { ProfileNameEditor } from "@/components/profile-name-editor"
+import ProfileSectionClient from "@/components/ProfileSectionClient"
 
-// ✅ ADICIONE ESTAS DUAS LINHAS PARA DESABILITAR CACHE
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+function StatItem({ 
+  icon: Icon, 
+  label, 
+  value, 
+  color 
+}: { 
+  icon: any; 
+  label: string; 
+  value: number; 
+  color: string; 
+}) {
+  return (
+    <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-accent/20 theme-transition hover:bg-accent/30">
+      <div className="flex items-center gap-2 sm:gap-3 text-muted-foreground">
+        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
+        <span className="text-sm sm:text-base">{label}</span>
+      </div>
+      <span className="font-bold text-lg sm:text-xl text-foreground theme-transition">
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function ActivityItem({
+  type,
+  title,
+  subtitle,
+  date,
+  href
+}: {
+  type: 'vote' | 'comment';
+  title: string;
+  subtitle: string;
+  date: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-start justify-between rounded-lg border border-border p-3 sm:p-4 transition-all duration-300 hover:bg-accent/30 hover:border-accent/50 hover:shadow-md group"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          {type === 'vote' && (
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 shrink-0" />
+          )}
+          {type === 'comment' && (
+            <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 shrink-0" />
+          )}
+          <p className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
+            {title}
+          </p>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+          {subtitle}
+        </p>
+      </div>
+      <p className="text-xs text-muted-foreground ml-2 sm:ml-4 shrink-0 whitespace-nowrap">
+        {new Date(date).toLocaleDateString("pt-BR")}
+      </p>
+    </Link>
+  )
+}
+
+function EmptyState({
+  message,
+  actionText,
+  actionHref
+}: {
+  message: string;
+  actionText: string;
+  actionHref: string;
+}) {
+  return (
+    <div className="text-center py-6 sm:py-8">
+      <div className="mb-3 sm:mb-4 text-muted-foreground">
+        <Beer className="h-8 w-8 sm:h-12 sm:w-12 mx-auto opacity-50" />
+      </div>
+      <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
+        {message}
+      </p>
+      <Button asChild variant="outline" size="sm">
+        <Link href={actionHref}>
+          {actionText}
+        </Link>
+      </Button>
+    </div>
+  )
+}
 
 export default async function ProfilePage() {
   const supabase = await getSupabaseServerClient()
@@ -25,15 +114,15 @@ export default async function ProfilePage() {
     return null 
   }
 
-  // ✅ Buscar dados do usuário usando o UUID do auth
+  // ✅ Buscar dados do usuário
   const { data: usuario, error: userError } = await supabase
     .from("usuario")
     .select("*")
-    .eq("uuid", user.id) // Usar o UUID do auth
+    .eq("uuid", user.id)
     .single()
 
   if (userError || !usuario) {
-     console.error("Erro ao carregar dados do usuário (UUID):", userError?.message);
+     console.error("Erro ao carregar dados do usuário:", userError?.message);
      
      // Fallback: tentar buscar por email
      const { data: usuarioByEmail } = await supabase
@@ -47,8 +136,11 @@ export default async function ProfilePage() {
        return null
      }
      
-     // Usar dados do fallback
-     const usuario = usuarioByEmail
+     return (
+       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+         <ProfileSectionClient usuario={usuarioByEmail} user={user} />
+       </div>
+     )
   }
 
   // Buscar estatísticas em paralelo
@@ -121,40 +213,7 @@ export default async function ProfilePage() {
       <div className="grid gap-6 lg:gap-8 lg:grid-cols-3">
         {/* Left Column - Profile Info */}
         <div className="space-y-4 sm:space-y-6">
-          {/* Profile Card */}
-          <Card className="theme-transition hover:shadow-lg border-2 border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardContent className="pt-6 text-center">
-              <div className="mb-4">
-                <ProfileImageUploader 
-                  initialUser={{ 
-                    uuid: usuario.uuid, 
-                    nome: usuario.nome, 
-                    foto_url: usuario.foto_url 
-                  }} 
-                  userId={user.id} // Passar o user.id do auth
-                />
-              </div>
-
-              <div className="mb-4">
-                <ProfileNameEditor 
-                  initialName={usuario.nome || "Usuário"}
-                  userId={usuario.uuid} // Passar o UUID do usuário
-                  userEmail={usuario.email}
-                />
-              </div>
-
-              <Badge 
-                variant="secondary" 
-                className="bg-accent/50 text-accent-foreground border-accent/30 theme-transition"
-              >
-                Membro desde{" "}
-                {new Date(usuario.criado_em).toLocaleDateString("pt-BR", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </Badge>
-            </CardContent>
-          </Card>
+          <ProfileSectionClient usuario={usuario} user={user} />
 
           {/* Stats Card */}
           <Card className="theme-transition hover:shadow-lg border-2 border-border/50 bg-card/80 backdrop-blur-sm">
@@ -260,98 +319,6 @@ export default async function ProfilePage() {
           </Card>
         </div>
       </div>
-    </div>
-  )
-}
-
-// Componentes auxiliares (mantenha os mesmos)
-function StatItem({ 
-  icon: Icon, 
-  label, 
-  value, 
-  color 
-}: { 
-  icon: any; 
-  label: string; 
-  value: number; 
-  color: string; 
-}) {
-  return (
-    <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-accent/20 theme-transition hover:bg-accent/30">
-      <div className="flex items-center gap-2 sm:gap-3 text-muted-foreground">
-        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
-        <span className="text-sm sm:text-base">{label}</span>
-      </div>
-      <span className="font-bold text-lg sm:text-xl text-foreground theme-transition">
-        {value}
-      </span>
-    </div>
-  )
-}
-
-function ActivityItem({
-  type,
-  title,
-  subtitle,
-  date,
-  href
-}: {
-  type: 'vote' | 'comment';
-  title: string;
-  subtitle: string;
-  date: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-start justify-between rounded-lg border border-border p-3 sm:p-4 transition-all duration-300 hover:bg-accent/30 hover:border-accent/50 hover:shadow-md group"
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          {type === 'vote' && (
-            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 shrink-0" />
-          )}
-          {type === 'comment' && (
-            <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 shrink-0" />
-          )}
-          <p className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
-            {title}
-          </p>
-        </div>
-        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-          {subtitle}
-        </p>
-      </div>
-      <p className="text-xs text-muted-foreground ml-2 sm:ml-4 shrink-0 whitespace-nowrap">
-        {new Date(date).toLocaleDateString("pt-BR")}
-      </p>
-    </Link>
-  )
-}
-
-function EmptyState({
-  message,
-  actionText,
-  actionHref
-}: {
-  message: string;
-  actionText: string;
-  actionHref: string;
-}) {
-  return (
-    <div className="text-center py-6 sm:py-8">
-      <div className="mb-3 sm:mb-4 text-muted-foreground">
-        <Beer className="h-8 w-8 sm:h-12 sm:w-12 mx-auto opacity-50" />
-      </div>
-      <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
-        {message}
-      </p>
-      <Button asChild variant="outline" size="sm">
-        <Link href={actionHref}>
-          {actionText}
-        </Link>
-      </Button>
     </div>
   )
 }
