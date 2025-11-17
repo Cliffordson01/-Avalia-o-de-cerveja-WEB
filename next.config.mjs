@@ -1,12 +1,10 @@
-// next.config.mjs - CONFIGURAÇÃO SIMPLIFICADA
+// next.config.mjs - CONFIGURAÇÃO SUPER SIMPLIFICADA
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ Configurações básicas
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: false, // Mude para false para debug
   },
   
-  // ✅ Configurações de imagens
   images: {
     remotePatterns: [
       {
@@ -17,24 +15,22 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
   },
 
-  // ✅ REMOVER completamente webpack e turbopack
-  // ❌ NÃO usar webpack: () => {}
-  // ❌ NÃO usar turbopack: {}
+  // ✅ REMOVER TUDO que causa conflito com Turbopack
+  // ❌ REMOVER webpack, turbopack, experimental, compiler
   
-  // ✅ Headers de segurança (opcional, pode remover se der problema)
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/_next/static/(.*)',
         headers: [
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
-    ];
+    ]
   },
 }
 
-export default nextConfig;
+export default nextConfig
