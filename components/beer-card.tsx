@@ -1,4 +1,4 @@
-// components/beer-card.tsx - ADAPTADO PARA TEMAS
+// components/beer-card.tsx - VERSÃO ATUALIZADA
 "use client"
 
 import Link from "next/link"
@@ -146,11 +146,15 @@ export function BeerCard({ cerveja, userId, showActions = true, priority = false
           </div>
         </div>
 
-        {/* Ações do usuário */}
+        {/* Ações do usuário - AGORA FUNCIONAIS */}
         {showActions && (
           <div className="border-t border-border/30 pt-2 sm:pt-3">
             <BeerActions 
-              cerveja={cerveja} 
+              cerveja={{
+                uuid: cerveja.uuid,
+                user_voto: cerveja.user_voto,
+                user_favorito: cerveja.user_favorito
+              }} 
               userId={userId} 
               size="sm" 
             />
