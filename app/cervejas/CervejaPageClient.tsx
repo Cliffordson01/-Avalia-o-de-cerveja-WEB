@@ -1,8 +1,8 @@
-// app/cervejas/CervejaPageClient.tsx - VERSÃO COMPLETA E CORRIGIDA
+// app/cervejas/CervejaPageClient.tsx - VERSÃO COM BEER-CARD-SAFE
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { BeerCard } from "@/components/beer-card"
+import { BeerCardSafe } from "@/components/beer-card-safe" // ✅ Alterado para BeerCardSafe
 import { Beer, Sparkles } from "lucide-react"
 import { BeerBackground } from "@/components/beer-background"
 import { BeerFiltersSimple } from "@/components/beer-filters-simple"
@@ -227,7 +227,7 @@ export function CervejaPageClient({
         {filteredAndSortedCervejas.length > 0 ? (
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
             {filteredAndSortedCervejas.map((cerveja) => (
-              <BeerCard 
+              <BeerCardSafe // ✅ Alterado para BeerCardSafe
                 key={cerveja.uuid} 
                 cerveja={cerveja} 
                 userId={userId}
