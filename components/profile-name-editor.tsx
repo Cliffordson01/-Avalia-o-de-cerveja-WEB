@@ -33,18 +33,44 @@ export function ProfileNameEditor({ initialName, userId, userEmail }: ProfileNam
 
     setLoading(true)
     try {
+      // ✅ PRIMEIRO: Garantir que estamos autenticados
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error("Usuário não autenticado")
+        return
+      }
+
+      // ✅ SEGUNDO: Atualizar usando o UUID correto
       const { error } = await supabase
         .from("usuario")
-        .update({ nome: name.trim() })
+        .update({ 
+          nome: name.trim(),
+          atualizado_em: new Date().toISOString() // Campo opcional para debug
+        })
         .eq("uuid", userId)
 
-      if (error) throw error
+      if (error) {
+        console.error("Erro detalhado:", error)
+        throw error
+      }
 
       toast.success("Nome atualizado com sucesso!")
       setIsEditing(false)
-    } catch (error) {
+      
+      // ✅ FORÇAR ATUALIZAÇÃO VISUAL IMEDIATA
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+      
+    } catch (error: any) {
       console.error("Erro ao atualizar nome:", error)
-      toast.error("Erro ao atualizar nome")
+      
+      // ✅ MENSAGENS DE ERRO ESPECÍFICAS
+      if (error.message?.includes('row-level security')) {
+        toast.error("Permissão negada. Contate o administrador.")
+      } else {
+        toast.error("Erro ao atualizar nome: " + (error.message || 'Erro desconhecido'))
+      }
     } finally {
       setLoading(false)
     }
@@ -78,7 +104,7 @@ export function ProfileNameEditor({ initialName, userId, userEmail }: ProfileNam
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-              Salvar
+              {loading ? 'Salvando...' : 'Salvar'}
             </Button>
             <Button
               size="sm"
