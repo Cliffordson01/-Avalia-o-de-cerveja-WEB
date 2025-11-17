@@ -1,4 +1,4 @@
-// app/cervejas/CervejaPageClient.tsx - VERSÃO COMPLETA COM TEMAS
+// app/cervejas/CervejaPageClient.tsx - VERSÃO COMPLETA E CORRIGIDA
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -135,7 +135,7 @@ export function CervejaPageClient({
     }
   }
 
-  // Função para filtrar e ordenar as cervejas
+  // ✅ FUNÇÃO CORRIGIDA PARA FILTRAR E ORDENAR AS CERVEJAS
   const filteredAndSortedCervejas = useMemo(() => {
     let filtered = initialCervejas
 
@@ -148,10 +148,11 @@ export function CervejaPageClient({
       )
     }
 
-    // Aplicar ordenação CORRETA com dados reais
+    // ✅ APLICAR ORDENAÇÃO CORRETA COM DADOS REAIS DO RANKING
     filtered = [...filtered].sort((a, b) => {
-      const rankingA = a.ranking || {}
-      const rankingB = b.ranking || {}
+      // Garantir que temos objetos de ranking válidos
+      const rankingA = a.ranking && typeof a.ranking === 'object' ? a.ranking : {}
+      const rankingB = b.ranking && typeof b.ranking === 'object' ? b.ranking : {}
 
       switch (sortOption) {
         case "name":
@@ -164,16 +165,17 @@ export function CervejaPageClient({
           return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
         
         case "rating":
-          return (rankingB.media_avaliacao || 0) - (rankingA.media_avaliacao || 0)
+          // ✅ Usando dados reais do ranking
+          return (Number(rankingB.media_avaliacao) || 0) - (Number(rankingA.media_avaliacao) || 0)
         
         case "votes":
-          return (rankingB.total_votos || 0) - (rankingA.total_votos || 0)
+          return (Number(rankingB.total_votos) || 0) - (Number(rankingA.total_votos) || 0)
         
         case "favorites":
-          return (rankingB.total_favoritos || 0) - (rankingA.total_favoritos || 0)
+          return (Number(rankingB.total_favoritos) || 0) - (Number(rankingA.total_favoritos) || 0)
         
         case "comments":
-          return (rankingB.total_comentarios || 0) - (rankingA.total_comentarios || 0)
+          return (Number(rankingB.total_comentarios) || 0) - (Number(rankingA.total_comentarios) || 0)
         
         default:
           return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()

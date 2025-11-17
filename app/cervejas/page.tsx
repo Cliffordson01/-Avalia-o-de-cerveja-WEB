@@ -1,4 +1,4 @@
-// app/cervejas/page.tsx - VERSÃO CORRIGIDA E SEGURA
+// app/cervejas/page.tsx - VERSÃO COM DADOS REAIS
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { CervejaPageClient } from "./CervejaPageClient"
 import { Beer } from "lucide-react"
@@ -18,17 +18,40 @@ export default async function CervejasPage({ searchParams }: CervejasPageProps) 
   try {
     const supabase = await getSupabaseServerClient()
 
-    // ✅ BUSCAR USUÁRIO COM TRY-CATCH
+    // ✅ BUSCAR USUÁRIO
     let user = null
     try {
       const { data: { user: userData } } = await supabase.auth.getUser()
       user = userData
     } catch (userError) {
       console.warn("Erro ao buscar usuário:", userError)
-      // Continua sem usuário
     }
 
-    // ✅ BUSCAR INTERAÇÕES DO USUÁRIO COM TRY-CATCH
+    // ✅ BUSCAR CERVEJAS COM ESTATÍSTICAS EM UMA ÚNICA QUERY
+    const { data: cervejasComRanking, error } = await supabase
+      .from("cerveja")
+      .select(`
+        *,
+        ranking (*),
+        selo (*)
+      `)
+      .eq("ativo", true)
+      .order("criado_em", { ascending: false })
+
+    if (error) {
+      console.error("Erro ao buscar cervejas:", error)
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-900 to-orange-800">
+          <div className="text-center text-white">
+            <Beer className="h-16 w-16 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Erro ao carregar cervejas</h2>
+            <p className="text-amber-200">Tente recarregar a página</p>
+          </div>
+        </div>
+      )
+    }
+
+    // ✅ BUSCAR INTERAÇÕES DO USUÁRIO (se estiver logado)
     let userVotes: string[] = []
     let userFavorites: string[] = []
 
@@ -46,40 +69,29 @@ export default async function CervejasPage({ searchParams }: CervejasPageProps) 
       }
     }
 
-    // ✅ BUSCAR CERVEJAS COM TRY-CATCH
-    const { data: cervejas, error } = await supabase
-      .from("cerveja")
-      .select("*")
-      .eq("ativo", true)
-      .order("criado_em", { ascending: false })
+    // ✅ PROCESSAR DADOS COM ESTATÍSTICAS REAIS
+    const cervejasComEstatisticas = cervejasComRanking?.map((cerveja: any) => {
+      // Extrair dados do ranking (pode ser array ou objeto)
+      const rankingData = cerveja.ranking && !Array.isArray(cerveja.ranking) 
+        ? cerveja.ranking
+        : (cerveja.ranking && Array.isArray(cerveja.ranking) && cerveja.ranking.length > 0 
+            ? cerveja.ranking[0] 
+            : null)
 
-    if (error) {
-      console.error("Erro ao buscar cervejas:", error)
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-900 to-orange-800">
-          <div className="text-center text-white">
-            <Beer className="h-16 w-16 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Erro ao carregar cervejas</h2>
-            <p className="text-amber-200">Tente recarregar a página</p>
-          </div>
-        </div>
-      )
-    }
-
-    // ✅ PROCESSAR CERVEJAS COM DADOS BÁSICOS
-    const cervejasComEstatisticas = cervejas?.map((cerveja: any) => ({
-      ...cerveja,
-      ranking: {
-        media_avaliacao: 0,
-        total_votos: 0,
-        total_favoritos: 0,
-        total_comentarios: 0,
-        posicao: null
-      },
-      selo: [],
-      user_voto: userVotes.includes(cerveja.uuid),
-      user_favorito: userFavorites.includes(cerveja.uuid),
-    })) || []
+      return {
+        ...cerveja,
+        ranking: rankingData || {
+          media_avaliacao: 0,
+          total_votos: 0,
+          total_favoritos: 0,
+          total_comentarios: 0,
+          posicao: null
+        },
+        selo: cerveja.selo || [],
+        user_voto: userVotes.includes(cerveja.uuid),
+        user_favorito: userFavorites.includes(cerveja.uuid),
+      }
+    }) || []
 
     return (
       <CervejaPageClient 
@@ -90,7 +102,6 @@ export default async function CervejasPage({ searchParams }: CervejasPageProps) 
     )
 
   } catch (mainError) {
-    // ✅ CAPTURA DE ERRO GERAL
     console.error("Erro geral na página de cervejas:", mainError)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-900 to-orange-800">
