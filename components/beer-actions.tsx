@@ -1,7 +1,7 @@
-// components/beer-actions.tsx - VERSÃO COMPLETA E FUNCIONAL
+// components/beer-actions.tsx - VERSÃO CORRIGIDA HYDRAÇÃO
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Heart } from "lucide-react"
@@ -19,12 +19,20 @@ interface BeerActionsProps {
 }
 
 export function BeerActions({ cerveja, userId, size = "sm" }: BeerActionsProps) {
-  const [isVoted, setIsVoted] = useState(cerveja.user_voto || false)
-  const [isFavorited, setIsFavorited] = useState(cerveja.user_favorito || false)
+  const [isVoted, setIsVoted] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(false)
   const [loading, setLoading] = useState<'vote' | 'favorite' | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
   
   const router = useRouter()
   const supabase = createClientComponentClient()
+
+  // ✅ CORREÇÃO: Sincronizar estado apenas após montagem
+  useEffect(() => {
+    setIsMounted(true)
+    setIsVoted(cerveja.user_voto || false)
+    setIsFavorited(cerveja.user_favorito || false)
+  }, [cerveja.user_voto, cerveja.user_favorito])
 
   const handleVote = async () => {
     if (!userId) {
@@ -38,35 +46,72 @@ export function BeerActions({ cerveja, userId, size = "sm" }: BeerActionsProps) 
         // Remover voto
         const { error } = await supabase
           .from("voto")
-          .update({ deletado: true })
+          .update({ 
+            deletado: true,
+            status: false 
+          })
           .eq("usuario_id", userId)
           .eq("cerveja_id", cerveja.uuid)
+          .eq("deletado", false)
 
-        if (error) throw error
+        if (error) {
+          console.error("Erro ao remover voto:", error)
+          if (error.code === '42501') {
+            toast.error("Sem permissão para remover voto")
+            return
+          }
+          throw error
+        }
         
         setIsVoted(false)
         toast.success("Voto removido!")
       } else {
         // Adicionar voto
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("voto")
-          .upsert({
+          .insert({
             usuario_id: userId,
             cerveja_id: cerveja.uuid,
             quantidade: 1,
             status: true,
             deletado: false
-          }, {
-            onConflict: 'usuario_id,cerveja_id'
           })
+          .select()
+          .single()
 
-        if (error) throw error
+        if (error) {
+          console.error("Erro ao adicionar voto:", error)
+          
+          if (error.code === '42501') {
+            toast.error("Faça login para votar")
+            router.push("/login")
+            return
+          }
+          
+          if (error.code === '23505') {
+            const { error: updateError } = await supabase
+              .from("voto")
+              .update({ 
+                deletado: false,
+                status: true 
+              })
+              .eq("usuario_id", userId)
+              .eq("cerveja_id", cerveja.uuid)
+
+            if (updateError) {
+              console.error("Erro ao reativar voto:", updateError)
+              throw updateError
+            }
+          } else {
+            throw error
+          }
+        }
         
         setIsVoted(true)
         toast.success("Voto registrado!")
       }
-    } catch (error) {
-      console.error("Erro ao votar:", error)
+    } catch (error: any) {
+      console.error("Erro completo ao votar:", error)
       toast.error("Erro ao processar voto")
     } finally {
       setLoading(null)
@@ -85,38 +130,101 @@ export function BeerActions({ cerveja, userId, size = "sm" }: BeerActionsProps) 
         // Remover favorito
         const { error } = await supabase
           .from("favorito")
-          .update({ deletado: true })
+          .update({ 
+            deletado: true,
+            status: false 
+          })
           .eq("usuario_id", userId)
           .eq("cerveja_id", cerveja.uuid)
+          .eq("deletado", false)
 
-        if (error) throw error
+        if (error) {
+          console.error("Erro ao remover favorito:", error)
+          if (error.code === '42501') {
+            toast.error("Sem permissão para remover favorito")
+            return
+          }
+          throw error
+        }
         
         setIsFavorited(false)
         toast.success("Removido dos favoritos!")
       } else {
         // Adicionar favorito
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("favorito")
-          .upsert({
+          .insert({
             usuario_id: userId,
             cerveja_id: cerveja.uuid,
             status: true,
             deletado: false
-          }, {
-            onConflict: 'usuario_id,cerveja_id'
           })
+          .select()
+          .single()
 
-        if (error) throw error
+        if (error) {
+          console.error("Erro ao adicionar favorito:", error)
+          
+          if (error.code === '42501') {
+            toast.error("Faça login para favoritar")
+            router.push("/login")
+            return
+          }
+          
+          if (error.code === '23505') {
+            const { error: updateError } = await supabase
+              .from("favorito")
+              .update({ 
+                deletado: false,
+                status: true 
+              })
+              .eq("usuario_id", userId)
+              .eq("cerveja_id", cerveja.uuid)
+
+            if (updateError) {
+              console.error("Erro ao reativar favorito:", updateError)
+              throw updateError
+            }
+          } else {
+            throw error
+          }
+        }
         
         setIsFavorited(true)
         toast.success("Adicionado aos favoritos!")
       }
-    } catch (error) {
-      console.error("Erro ao favoritar:", error)
+    } catch (error: any) {
+      console.error("Erro completo ao favoritar:", error)
       toast.error("Erro ao processar favorito")
     } finally {
       setLoading(null)
     }
+  }
+
+  // ✅ CORREÇÃO: Renderizar estado neutro durante SSR
+  if (!isMounted) {
+    return (
+      <div className="flex gap-2">
+        <Button
+          size={size}
+          variant="outline"
+          className="flex-1"
+          disabled
+        >
+          <TrendingUp className="h-4 w-4 mr-1" />
+          Votar
+        </Button>
+        
+        <Button
+          size={size}
+          variant="outline"
+          className="px-3"
+          disabled
+        >
+          <Heart className="h-4 w-4" />
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -125,12 +233,14 @@ export function BeerActions({ cerveja, userId, size = "sm" }: BeerActionsProps) 
       <Button
         size={size}
         variant={isVoted ? "default" : "outline"}
-        className="flex-1 transition-all duration-300"
+        className={`flex-1 transition-all duration-300 ${
+          isVoted ? 'bg-green-600 hover:bg-green-700' : ''
+        }`}
         onClick={handleVote}
         disabled={loading === 'vote'}
       >
         <TrendingUp className={`h-4 w-4 mr-1 ${loading === 'vote' ? 'animate-pulse' : ''}`} />
-        {loading === 'vote' ? "Processando..." : (isVoted ? "Votado" : "Votar")}
+        {loading === 'vote' ? "..." : (isVoted ? "Votado" : "Votar")}
       </Button>
       
       {/* Botão de Favoritar */}
