@@ -329,7 +329,7 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
           console.error("Erro ao verificar ranking:", checkError);
         }
 
-        const currentTaças = existingRanking?.taças_breja || 0;
+        const currentTaças = (existingRanking as any)?.taças_breja || 0;
 
         const { error: updateError } = await supabase.from("ranking").upsert(
           {
@@ -501,16 +501,16 @@ export function BattleArena({ cervejas, userId }: BattleArenaProps) {
         if (updateError) throw updateError;
 
         if (dailyVoteError) {
-          if (dailyVoteError.code === "23505") {
-            toast({
-              title: "Voto já realizado",
-              description: "Você já votou na batalha de hoje!",
-              variant: "destructive",
-            });
-            return;
-          }
-          throw dailyVoteError;
-        }
+  if ((dailyVoteError as any).code === "23505") {
+    toast({
+      title: "Voto já realizado",
+      description: "Você já votou na batalha de hoje!",
+      variant: "destructive",
+    });
+    return;
+  }
+  throw dailyVoteError;
+}
 
         setDailyBattle((prev) =>
           prev
