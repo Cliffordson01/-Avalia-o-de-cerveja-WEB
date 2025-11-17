@@ -1,8 +1,8 @@
-// components/profile-image-uploader.tsx - VERSÃO CORRIGIDA
+// components/profile-image-uploader.tsx
 "use client"
 
-import { useState, useRef } from "react"
-import { Camera, Upload, Loader2, User } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Camera, Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
@@ -21,6 +21,11 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
   const [imageUrl, setImageUrl] = useState(initialUser.foto_url || "")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClientComponentClient()
+
+  // ✅ ATUALIZAR o estado local quando a foto_url mudar
+  useEffect(() => {
+    setImageUrl(initialUser.foto_url || "")
+  }, [initialUser.foto_url])
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -41,15 +46,15 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
         return
       }
 
-      // Otimizar imagem antes do upload (reduzir qualidade para mobile)
+      // Otimizar imagem
       const optimizedFile = await optimizeImage(file)
 
-      const fileExt = optimizedFile.name.split('.').pop()
+      const fileExt = optimizedFile.name.split('.').pop() || 'jpg'
       const fileName = `${userId}-${Date.now()}.${fileExt}`
       const filePath = `profile-images/${fileName}`
 
-      // Upload otimizado com progresso
-      const { error: uploadError, data } = await supabase.storage
+      // ✅ 1. Fazer upload para o storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, optimizedFile, {
           cacheControl: '3600',
@@ -57,40 +62,60 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
         })
 
       if (uploadError) {
-        throw uploadError
+        console.error("❌ Erro no upload:", uploadError)
+        toast.error("Erro no upload da imagem")
+        return
       }
 
-      // Obter URL pública
+      // ✅ 2. Obter URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // Atualizar perfil do usuário
+      // ✅ 3. ATUALIZAR perfil do usuário na tabela usuario
       const { error: updateError } = await supabase
         .from("usuario")
-        .update({ foto_url: publicUrl })
+        .update({ 
+          foto_url: publicUrl,
+          atualizado_em: new Date().toISOString()
+        })
         .eq("uuid", initialUser.uuid)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error("❌ Erro ao atualizar perfil:", updateError)
+        toast.error("Erro ao salvar no banco de dados")
+        return
+      }
 
-      setImageUrl(publicUrl)
+      // ✅ 4. Atualizar estado local
+      setImageUrl(publicUrl + '?t=' + Date.now())
+      
       toast.success("Foto de perfil atualizada com sucesso!")
 
-    } catch (error) {
-      console.error("Error uploading image:", error)
+      // ✅ 5. Forçar atualização completa da página
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+
+    } catch (error: any) {
+      console.error("💥 Erro inesperado:", error)
       toast.error("Erro ao fazer upload da imagem")
     } finally {
       setUploading(false)
-      // Resetar input de arquivo
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
   }
 
-  // Função para otimizar imagem (reduz qualidade para mobile)
+  // Função para otimizar imagem
   const optimizeImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
+      if (file.size < 1024 * 1024) {
+        resolve(file)
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = (e) => {
         const img = new Image()
@@ -98,22 +123,20 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
           const canvas = document.createElement('canvas')
           const ctx = canvas.getContext('2d')!
           
-          // Redimensionar imagem para no máximo 500px
           const maxSize = 500
           let width = img.width
           let height = img.height
           
           if (width > height && width > maxSize) {
-            height = (height * maxSize) / width
+            height = Math.round((height * maxSize) / width)
             width = maxSize
           } else if (height > maxSize) {
-            width = (width * maxSize) / height
+            width = Math.round((width * maxSize) / height)
             height = maxSize
           }
           
           canvas.width = width
           canvas.height = height
-          
           ctx.drawImage(img, 0, 0, width, height)
           
           canvas.toBlob((blob) => {
@@ -126,7 +149,7 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
             } else {
               resolve(file)
             }
-          }, 'image/jpeg', 0.7) // 70% de qualidade
+          }, 'image/jpeg', 0.8)
         }
         img.src = e.target?.result as string
       }
@@ -138,7 +161,7 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
     if (initialUser.nome) {
       return initialUser.nome.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     }
-    return initialUser.nome?.[0]?.toUpperCase() || 'U'
+    return 'U'
   }
 
   const getUserColor = (): string => {
@@ -146,7 +169,6 @@ export function ProfileImageUploader({ initialUser, userId }: ProfileImageUpload
       'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
       'bg-orange-500', 'bg-teal-500', 'bg-cyan-500', 'bg-indigo-500'
     ]
-    // ✅ CORREÇÃO: Usar email como fallback se nome não existir
     const identifier = initialUser.nome || initialUser.uuid || 'user'
     const index = identifier.length % colors.length
     return colors[index]

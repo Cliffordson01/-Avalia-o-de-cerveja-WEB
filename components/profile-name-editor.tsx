@@ -1,7 +1,7 @@
 // components/profile-name-editor.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Edit3, Save, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,57 +20,52 @@ export function ProfileNameEditor({ initialName, userId, userEmail }: ProfileNam
   const [loading, setLoading] = useState(false)
   const supabase = createClientComponentClient()
 
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast.error("O nome não pode estar vazio")
-      return
-    }
+  // ✅ ATUALIZAR o estado local quando o initialName mudar
+  useEffect(() => {
+    setName(initialName)
+  }, [initialName])
 
-    if (name === initialName) {
-      setIsEditing(false)
+  const handleSave = async () => {
+    if (!name.trim() || name.trim() === initialName) {
+      if (name.trim() === initialName) {
+        setIsEditing(false)
+      }
       return
     }
 
     setLoading(true)
     try {
-      // ✅ PRIMEIRO: Garantir que estamos autenticados
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        toast.error("Usuário não autenticado")
-        return
-      }
-
-      // ✅ SEGUNDO: Atualizar usando o UUID correto
-      const { error } = await supabase
+      console.log("💾 Salvando nome no banco...")
+      
+      // ✅ ATUALIZAR nome no banco de dados
+      const { data, error } = await supabase
         .from("usuario")
         .update({ 
           nome: name.trim(),
-          atualizado_em: new Date().toISOString() // Campo opcional para debug
+          atualizado_em: new Date().toISOString()
         })
         .eq("uuid", userId)
+        .select()
 
       if (error) {
-        console.error("Erro detalhado:", error)
-        throw error
+        console.error("❌ Erro ao atualizar nome:", error)
+        toast.error("Erro ao atualizar nome")
+        return
       }
 
+      console.log("✅ Nome atualizado com sucesso:", data)
       toast.success("Nome atualizado com sucesso!")
+
       setIsEditing(false)
       
-      // ✅ FORÇAR ATUALIZAÇÃO VISUAL IMEDIATA
+      // ✅ Forçar atualização completa da página
       setTimeout(() => {
         window.location.reload()
-      }, 500)
+      }, 1000)
       
     } catch (error: any) {
-      console.error("Erro ao atualizar nome:", error)
-      
-      // ✅ MENSAGENS DE ERRO ESPECÍFICAS
-      if (error.message?.includes('row-level security')) {
-        toast.error("Permissão negada. Contate o administrador.")
-      } else {
-        toast.error("Erro ao atualizar nome: " + (error.message || 'Erro desconhecido'))
-      }
+      console.error("💥 Erro inesperado:", error)
+      toast.error("Erro ao atualizar nome")
     } finally {
       setLoading(false)
     }
@@ -100,7 +95,7 @@ export function ProfileNameEditor({ initialName, userId, userEmail }: ProfileNam
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={loading || !name.trim()}
+              disabled={loading || !name.trim() || name.trim() === initialName}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />

@@ -1,4 +1,4 @@
-// app/perfil/page.tsx - VERSÃO FINAL CORRIGIDA
+// app/perfil/page.tsx
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +8,10 @@ import { TrendingUp, Heart, MessageCircle, Star, Beer } from "lucide-react"
 import Link from "next/link"
 import { ProfileImageUploader } from "@/components/profile-image-uploader" 
 import { ProfileNameEditor } from "@/components/profile-name-editor"
+
+// ✅ ADICIONE ESTAS DUAS LINHAS PARA DESABILITAR CACHE
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function ProfilePage() {
   const supabase = await getSupabaseServerClient()
@@ -21,22 +25,33 @@ export default async function ProfilePage() {
     return null 
   }
 
-  // Get user data
+  // ✅ Buscar dados do usuário usando o UUID do auth
   const { data: usuario, error: userError } = await supabase
     .from("usuario")
     .select("*")
-    .eq("email", user.email)
+    .eq("uuid", user.id) // Usar o UUID do auth
     .single()
 
   if (userError || !usuario) {
-     console.error("Erro ao carregar dados do usuário (email):", userError?.message);
-     redirect("/login"); 
-     return null; 
+     console.error("Erro ao carregar dados do usuário (UUID):", userError?.message);
+     
+     // Fallback: tentar buscar por email
+     const { data: usuarioByEmail } = await supabase
+       .from("usuario")
+       .select("*")
+       .eq("email", user.email)
+       .single()
+       
+     if (!usuarioByEmail) {
+       redirect("/login")
+       return null
+     }
+     
+     // Usar dados do fallback
+     const usuario = usuarioByEmail
   }
 
-  // --- ESTATÍSTICAS CORRIGIDAS ---
-  
-  // Buscar estatísticas em paralelo para melhor performance
+  // Buscar estatísticas em paralelo
   const [
     votosCount,
     favoritosCount,
@@ -45,34 +60,29 @@ export default async function ProfilePage() {
     recentVotes,
     recentComments
   ] = await Promise.all([
-    // VOTOS
     supabase
       .from("voto")
       .select("*", { count: "exact", head: true })
       .eq("usuario_id", usuario.uuid)
       .eq("deletado", false),
     
-    // Favoritos Ativos
     supabase
       .from("favorito")
       .select("*", { count: "exact", head: true })
       .eq("usuario_id", usuario.uuid)
       .eq("deletado", false),
     
-    // Comentários
     supabase
       .from("comentario")
       .select("*", { count: "exact", head: true })
       .eq("usuario_id", usuario.uuid),
     
-    // AVALIAÇÕES
     supabase
       .from("avaliacao")
       .select("*", { count: "exact", head: true })
       .eq("usuario_id", usuario.uuid)
       .eq("deletado", false),
     
-    // Votos Recentes
     supabase
       .from("voto")
       .select(
@@ -86,7 +96,6 @@ export default async function ProfilePage() {
       .order("criado_em", { ascending: false })
       .limit(5),
     
-    // Comentários Recentes
     supabase
       .from("comentario")
       .select(
@@ -105,7 +114,6 @@ export default async function ProfilePage() {
   const totalComentarios = comentariosCount.count || 0
   const totalAvaliacoes = avaliacoesCount.count || 0
 
-  // Filtrar votos recentes para remover aqueles com cerveja null
   const votosValidos = recentVotes.data?.filter(voto => voto.cerveja !== null) || []
 
   return (
@@ -123,14 +131,14 @@ export default async function ProfilePage() {
                     nome: usuario.nome, 
                     foto_url: usuario.foto_url 
                   }} 
-                  userId={user.id}
+                  userId={user.id} // Passar o user.id do auth
                 />
               </div>
 
               <div className="mb-4">
                 <ProfileNameEditor 
                   initialName={usuario.nome || "Usuário"}
-                  userId={usuario.uuid}
+                  userId={usuario.uuid} // Passar o UUID do usuário
                   userEmail={usuario.email}
                 />
               </div>
@@ -140,7 +148,7 @@ export default async function ProfilePage() {
                 className="bg-accent/50 text-accent-foreground border-accent/30 theme-transition"
               >
                 Membro desde{" "}
-                {new Date(usuario?.criado_em || "").toLocaleDateString("pt-BR", {
+                {new Date(usuario.criado_em).toLocaleDateString("pt-BR", {
                   month: "long",
                   year: "numeric",
                 })}
@@ -256,7 +264,7 @@ export default async function ProfilePage() {
   )
 }
 
-// Componente para item de estatística
+// Componentes auxiliares (mantenha os mesmos)
 function StatItem({ 
   icon: Icon, 
   label, 
@@ -281,7 +289,6 @@ function StatItem({
   )
 }
 
-// Componente para item de atividade
 function ActivityItem({
   type,
   title,
@@ -323,7 +330,6 @@ function ActivityItem({
   )
 }
 
-// Componente para estado vazio
 function EmptyState({
   message,
   actionText,
