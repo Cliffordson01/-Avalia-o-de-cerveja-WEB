@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, Upload, Loader2 } from "lucide-react"
+import { Camera, Upload, Loader2, Image } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useSupabase } from "@/hooks/useSupabase"
@@ -26,14 +26,11 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
     setImageUrl(initialUser.foto_url || "")
   }, [initialUser.foto_url])
 
-  // 🔥 COMPRESSÃO OTIMIZADA PARA MOBILE
   const compressImageForMobile = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
-      // Para mobile, compressão mais agressiva
-      const maxSize = 400 // pixels (otimizado para mobile)
-      const quality = 0.7 // qualidade balanceada
+      const maxSize = 400
+      const quality = 0.7
       
-      // Se for imagem muito pequena, não comprime
       if (file.size < 300 * 1024) {
         resolve(file)
         return
@@ -41,14 +38,18 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
 
       const reader = new FileReader()
       reader.onload = (e) => {
-        const img = new Image()
+        // CORREÇÃO: Removido o 'new' problemático
+        const img = document.createElement('img')
         img.onload = () => {
           const canvas = document.createElement('canvas')
-          const ctx = canvas.getContext('2d')!
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve(file)
+            return
+          }
           
           let { width, height } = img
           
-          // Redimensiona mantendo proporção
           if (width > height && width > maxSize) {
             height = Math.round((height * maxSize) / width)
             width = maxSize
@@ -62,7 +63,6 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
           
           ctx.drawImage(img, 0, 0, width, height)
           
-          // Converte para JPEG com qualidade reduzida
           canvas.toBlob(
             (blob) => resolve(blob || file),
             'image/jpeg',
@@ -79,8 +79,7 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
     const file = event.target.files?.[0]
     if (!file) return
 
-    // 🔥 VALIDAÇÃO MAIS RÁPIDA
-    if (file.size > 3 * 1024 * 1024) { // Reduzido para 3MB
+    if (file.size > 3 * 1024 * 1024) {
       toast.error("Imagem muito grande. Máximo: 3MB")
       return
     }
@@ -100,23 +99,20 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
         return
       }
 
-      // 🔥 COMPRIME ANTES DO UPLOAD
       const compressedBlob = await compressImageForMobile(file)
-      const fileExt = 'jpg' // Força JPEG para melhor compressão
+      const fileExt = 'jpg'
       const fileName = `${user.id}-${Date.now()}.${fileExt}`
       const filePath = `profile-images/${fileName}`
 
-      // 🔥 UPLOAD DIRETO SEM MÚLTIPLAS TENTATIVAS
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, compressedBlob, {
           cacheControl: '3600',
-          upsert: false // Não tenta upsert (mais rápido)
+          upsert: false
         })
 
       if (uploadError) {
         if (uploadError.message.includes('already exists')) {
-          // Se já existe, faz upsert
           const { error: upsertError } = await supabase.storage
             .from('avatars')
             .upload(filePath, compressedBlob, { upsert: true })
@@ -127,22 +123,19 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
         }
       }
 
-      // 🔥 URL PÚBLICA
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // 🔥 ATUALIZAÇÃO DIRETA
       const { error: updateError } = await supabase
         .from("usuario")
         .update({ 
           foto_url: publicUrl,
           atualizado_em: new Date().toISOString()
         })
-        .eq("uuid", user.id) // Usa sempre o ID do auth
+        .eq("uuid", user.id)
 
       if (updateError) {
-        // Fallback: tenta com o UUID do perfil
         const { error: fallbackError } = await supabase
           .from("usuario")
           .update({ foto_url: publicUrl })
@@ -151,15 +144,12 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
         if (fallbackError) throw fallbackError
       }
 
-      // 🔥 ATUALIZAÇÃO OTIMIZADA DA IMAGEM
       const newImageUrl = `${publicUrl}?t=${Date.now()}&v=2`
       setImageUrl(newImageUrl)
       
       toast.success("Foto atualizada!")
       
-      // 🔥 RELOAD MAIS INTELIGENTE
       setTimeout(() => {
-        // Só recarrega se necessário
         if (window.location.pathname === '/perfil') {
           window.location.reload()
         }
@@ -174,6 +164,25 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
         fileInputRef.current.value = ''
       }
     }
+  }
+
+  const openCamera = () => {
+    const cameraInput = document.createElement('input')
+    cameraInput.type = 'file'
+    cameraInput.accept = 'image/*'
+    cameraInput.capture = 'environment'
+    cameraInput.onchange = (e) => {
+      const target = e.target as HTMLInputElement
+      if (target.files?.[0]) {
+        const fakeEvent = {
+          target: {
+            files: target.files
+          }
+        } as React.ChangeEvent<HTMLInputElement>
+        handleImageUpload(fakeEvent)
+      }
+    }
+    cameraInput.click()
   }
 
   const getUserInitials = (): string => {
@@ -195,7 +204,6 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
         accept="image/*"
         className="hidden"
         disabled={uploading}
-        capture="environment" // 🔥 MELHORA EXPERIÊNCIA MOBILE
       />
       
       <div className="relative">
@@ -205,7 +213,7 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
               src={imageUrl}
               alt={`Foto de ${initialUser.nome || 'Usuário'}`}
               className="w-full h-full rounded-full object-cover border-2 border-primary/20"
-              loading="lazy" // 🔥 LAZY LOADING
+              loading="lazy"
             />
           </div>
         ) : (
@@ -232,13 +240,13 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
             {uploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Camera className="h-4 w-4" />
+              <Image className="h-4 w-4" />
             )}
           </Button>
         </div>
       </div>
 
-      <div className="mt-2 flex justify-center">
+      <div className="mt-2 flex justify-center gap-2">
         <Button
           type="button"
           variant="outline"
@@ -252,7 +260,19 @@ export default function ProfileImageUploaderOptimized({ initialUser, userId }: P
           ) : (
             <Upload className="h-3 w-3 mr-1" />
           )}
-          {uploading ? 'Enviando...' : 'Alterar'}
+          {uploading ? 'Enviando...' : 'Galeria'}
+        </Button>
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={openCamera}
+          disabled={uploading}
+          className="text-xs h-8"
+        >
+          <Camera className="h-3 w-3 mr-1" />
+          Câmera
         </Button>
       </div>
     </div>
