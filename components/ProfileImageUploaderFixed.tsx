@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, Upload, Loader2, RefreshCw } from "lucide-react"
+import { Camera, Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useSupabase } from "@/hooks/useSupabase"
@@ -15,10 +15,9 @@ interface ProfileImageUploaderProps {
   userId: string
 }
 
-export default function ProfileImageUploaderFixed({ initialUser, userId }: ProfileImageUploaderProps) {
+export default function ProfileImageUploaderOptimized({ initialUser, userId }: ProfileImageUploaderProps) {
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState(initialUser.foto_url || "")
-  const [syncLoading, setSyncLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const supabase = useSupabase()
@@ -27,168 +26,148 @@ export default function ProfileImageUploaderFixed({ initialUser, userId }: Profi
     setImageUrl(initialUser.foto_url || "")
   }, [initialUser.foto_url])
 
-  const syncUserWithAuth = async () => {
-    setSyncLoading(true)
-    
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+  // 🔥 COMPRESSÃO OTIMIZADA PARA MOBILE
+  const compressImageForMobile = (file: File): Promise<Blob> => {
+    return new Promise((resolve) => {
+      // Para mobile, compressão mais agressiva
+      const maxSize = 400 // pixels (otimizado para mobile)
+      const quality = 0.7 // qualidade balanceada
       
-      if (authError || !user) {
-        toast.error("Usuário não autenticado")
-        return false
+      // Se for imagem muito pequena, não comprime
+      if (file.size < 300 * 1024) {
+        resolve(file)
+        return
       }
 
-      const { data: existingUser, error: checkError } = await supabase
-        .from("usuario")
-        .select("uuid, nome, email")
-        .eq("uuid", user.id)
-        .single()
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        toast.error("Erro ao verificar usuário")
-        return false
-      }
-
-      if (!existingUser) {
-        const { data: newUser, error: createError } = await supabase
-          .from("usuario")
-          .insert({
-            uuid: user.id,
-            email: user.email,
-            nome: initialUser.nome || user.email?.split('@')[0] || 'Usuário',
-            criado_em: new Date().toISOString()
-          })
-          .select()
-          .single()
-
-        if (createError) {
-          const { error: updateError } = await supabase
-            .from("usuario")
-            .update({ uuid: user.id })
-            .eq("email", user.email)
-
-          if (updateError) {
-            toast.error("Erro ao sincronizar usuário")
-            return false
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')!
+          
+          let { width, height } = img
+          
+          // Redimensiona mantendo proporção
+          if (width > height && width > maxSize) {
+            height = Math.round((height * maxSize) / width)
+            width = maxSize
+          } else if (height > maxSize) {
+            width = Math.round((width * maxSize) / height)
+            height = maxSize
           }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // Converte para JPEG com qualidade reduzida
+          canvas.toBlob(
+            (blob) => resolve(blob || file),
+            'image/jpeg',
+            quality
+          )
         }
-
-        toast.success("Perfil sincronizado!")
-        return true
+        img.src = e.target?.result as string
       }
-
-      return true
-
-    } catch (error) {
-      toast.error("Erro ao sincronizar perfil")
-      return false
-    } finally {
-      setSyncLoading(false)
-    }
+      reader.readAsDataURL(file)
+    })
   }
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 5MB")
+    // 🔥 VALIDAÇÃO MAIS RÁPIDA
+    if (file.size > 3 * 1024 * 1024) { // Reduzido para 3MB
+      toast.error("Imagem muito grande. Máximo: 3MB")
       return
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error("Por favor, selecione uma imagem válida")
+      toast.error("Selecione uma imagem válida")
       return
     }
 
     setUploading(true)
 
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       
-      if (authError || !user) {
+      if (!user) {
         toast.error("Usuário não autenticado")
         return
       }
 
-      // Usar o user.id para o nome do arquivo
-      const fileExt = file.name.split('.').pop() || 'jpg'
+      // 🔥 COMPRIME ANTES DO UPLOAD
+      const compressedBlob = await compressImageForMobile(file)
+      const fileExt = 'jpg' // Força JPEG para melhor compressão
       const fileName = `${user.id}-${Date.now()}.${fileExt}`
       const filePath = `profile-images/${fileName}`
 
-      // Fazer upload
+      // 🔥 UPLOAD DIRETO SEM MÚLTIPLAS TENTATIVAS
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, {
+        .upload(filePath, compressedBlob, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false // Não tenta upsert (mais rápido)
         })
 
       if (uploadError) {
-        toast.error(`Erro no upload: ${uploadError.message}`)
-        return
+        if (uploadError.message.includes('already exists')) {
+          // Se já existe, faz upsert
+          const { error: upsertError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, compressedBlob, { upsert: true })
+          
+          if (upsertError) throw upsertError
+        } else {
+          throw uploadError
+        }
       }
 
-      // Obter a URL pública
+      // 🔥 URL PÚBLICA
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // Função para atualizar o banco
-      const updateUserPhoto = async (userUuid: string): Promise<boolean> => {
-        const { data, error } = await supabase
+      // 🔥 ATUALIZAÇÃO DIRETA
+      const { error: updateError } = await supabase
+        .from("usuario")
+        .update({ 
+          foto_url: publicUrl,
+          atualizado_em: new Date().toISOString()
+        })
+        .eq("uuid", user.id) // Usa sempre o ID do auth
+
+      if (updateError) {
+        // Fallback: tenta com o UUID do perfil
+        const { error: fallbackError } = await supabase
           .from("usuario")
-          .update({ 
-            foto_url: publicUrl
-          })
-          .eq("uuid", userUuid)
-          .select()
+          .update({ foto_url: publicUrl })
+          .eq("uuid", initialUser.uuid)
 
-        if (error) {
-          return false
-        }
-
-        if (!data || data.length === 0) {
-          return false
-        }
-
-        return true
+        if (fallbackError) throw fallbackError
       }
 
-      // Tentativa 1 - UUID do Auth
-      let success = await updateUserPhoto(user.id)
-
-      // Tentativa 2 - UUID do perfil
-      if (!success) {
-        success = await updateUserPhoto(initialUser.uuid)
-      }
-
-      // Tentativa 3 - Sincronizar e tentar novamente
-      if (!success) {
-        const syncSuccess = await syncUserWithAuth()
-        if (syncSuccess) {
-          success = await updateUserPhoto(user.id)
-        }
-      }
-
-      if (!success) {
-        toast.error("Erro ao salvar a foto no perfil")
-        return
-      }
-
-      // Atualizar o estado local com a NOVA URL + timestamp para evitar cache
-      const newImageUrl = publicUrl + '?t=' + Date.now()
+      // 🔥 ATUALIZAÇÃO OTIMIZADA DA IMAGEM
+      const newImageUrl = `${publicUrl}?t=${Date.now()}&v=2`
       setImageUrl(newImageUrl)
       
-      toast.success("Foto de perfil atualizada com sucesso!")
-
-      // Recarregar a página para garantir que todos os componentes vejam a nova imagem
+      toast.success("Foto atualizada!")
+      
+      // 🔥 RELOAD MAIS INTELIGENTE
       setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+        // Só recarrega se necessário
+        if (window.location.pathname === '/perfil') {
+          window.location.reload()
+        }
+      }, 500)
 
     } catch (error: any) {
-      toast.error("Erro inesperado ao fazer upload")
+      console.error("Upload error:", error)
+      toast.error(error.message || "Erro no upload")
     } finally {
       setUploading(false)
       if (fileInputRef.current) {
@@ -198,20 +177,13 @@ export default function ProfileImageUploaderFixed({ initialUser, userId }: Profi
   }
 
   const getUserInitials = (): string => {
-    if (initialUser.nome) {
-      return initialUser.nome.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    }
-    return 'U'
+    return initialUser.nome?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'
   }
 
   const getUserColor = (): string => {
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
-      'bg-orange-500', 'bg-teal-500', 'bg-cyan-500', 'bg-indigo-500'
-    ]
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500']
     const identifier = initialUser.nome || initialUser.uuid || 'user'
-    const index = identifier.length % colors.length
-    return colors[index]
+    return colors[identifier.length % colors.length]
   }
 
   return (
@@ -223,74 +195,64 @@ export default function ProfileImageUploaderFixed({ initialUser, userId }: Profi
         accept="image/*"
         className="hidden"
         disabled={uploading}
+        capture="environment" // 🔥 MELHORA EXPERIÊNCIA MOBILE
       />
       
       <div className="relative">
         {imageUrl ? (
-          <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto">
+          <div className="relative w-20 h-20 sm:w-32 sm:h-32 mx-auto">
             <img
               src={imageUrl}
               alt={`Foto de ${initialUser.nome || 'Usuário'}`}
-              className="w-full h-full rounded-full object-cover border-4 border-primary/20 shadow-lg theme-transition group-hover:border-primary/40"
-              key={imageUrl}
+              className="w-full h-full rounded-full object-cover border-2 border-primary/20"
+              loading="lazy" // 🔥 LAZY LOADING
             />
           </div>
         ) : (
           <div className={`
-            w-24 h-24 sm:w-32 sm:h-32 mx-auto rounded-full 
+            w-20 h-20 sm:w-32 sm:h-32 mx-auto rounded-full 
             ${getUserColor()} 
             flex items-center justify-center 
-            text-white font-bold text-xl sm:text-2xl
-            border-4 border-primary/20 shadow-lg
-            theme-transition group-hover:border-primary/40
+            text-white font-bold text-lg sm:text-2xl
+            border-2 border-primary/20
           `}>
             {getUserInitials()}
           </div>
         )}
 
-        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
+        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="h-12 w-12 rounded-full bg-white/20 hover:bg-white/30 text-white border-0"
+            className="h-10 w-10 rounded-full bg-white/20 text-white border-0"
           >
             {uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Camera className="h-5 w-5" />
+              <Camera className="h-4 w-4" />
             )}
           </Button>
         </div>
       </div>
 
-      <div className="mt-3 flex justify-center gap-2">
+      <div className="mt-2 flex justify-center">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="text-xs"
+          className="text-xs h-8"
         >
           {uploading ? (
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           ) : (
             <Upload className="h-3 w-3 mr-1" />
           )}
-          {uploading ? 'Enviando...' : 'Alterar Foto'}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={syncUserWithAuth}
-          disabled={syncLoading}
-          className="h-8 w-8 p-0"
-          title="Sincronizar perfil"
-        >
-          <RefreshCw className={`h-3 w-3 ${syncLoading ? 'animate-spin' : ''}`} />
+          {uploading ? 'Enviando...' : 'Alterar'}
         </Button>
       </div>
     </div>
