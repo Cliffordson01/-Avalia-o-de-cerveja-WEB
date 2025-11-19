@@ -39,7 +39,7 @@ Este projeto foi construído com um stack tecnológico moderno e eficiente:
 Antes de começar, certifique-se de ter as seguintes ferramentas instaladas em seu ambiente de desenvolvimento:
 
 -   **Node.js** (versão 18.x ou superior): Ambiente de execução JavaScript.
--   **pnpm** (gerenciador de pacotes): Para instalar as dependências do projeto. Se não tiver, instale via npm: `npm install -g pnpm`.
+-   **yarn** (gerenciador de pacotes): Para instalar as dependências do projeto. Se não tiver, instale via yarn: `yarn install -g yarn`.
 -   **Git**: Sistema de controle de versão.
 -   **Visual Studio Code** (ou seu editor de código preferido): Para desenvolver a aplicação.
 -   **Conta Supabase**: Para configurar o backend e o banco de dados. Crie uma conta gratuita em [supabase.com](https://supabase.com/).
@@ -57,10 +57,11 @@ cd topbreja
 
 ### 2. Instale as Dependências
 
-Navegue até o diretório do projeto e instale as dependências usando pnpm:
+Navegue até o diretório do projeto e instale as dependências usando yarn:
 
 ```bash
-pnpm install
+yarn install
+hero-ui install
 ```
 
 ### 3. Variáveis de Ambiente
@@ -68,8 +69,8 @@ pnpm install
 Crie um arquivo `.env.local` na raiz do projeto (no mesmo nível do `package.json`) e adicione suas credenciais do Supabase. Você pode encontrá-las em `Project Settings > API` no seu painel do Supabase.
 
 ```env
-VITE_SUPABASE_URL="SUA_URL_DO_PROJETO_SUPABASE"
-VITE_SUPABASE_ANON_KEY="SUA_CHAVE_ANON_SUPABASE"
+NEXT_PUBLIC_SUPABASE_URL="SUA_URL_DO_PROJETO_SUPABASE"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="SUA_CHAVE_ANON_SUPABASE"
 ```
 
 **Onde encontrar as credenciais?**
@@ -116,7 +117,7 @@ de **Public bucket** (balde público).
 Após configurar o Supabase e as variáveis de ambiente, você pode iniciar o servidor de desenvolvimento:
 
 ```bash
-pnpm run dev
+yarn dev
 ```
 
 A aplicação estará disponível em `http://localhost:5173`.
@@ -170,7 +171,7 @@ topbreja/
 ├── .gitignore
 ├── index.html
 ├── package.json
-├── pnpm-lock.yaml
+├── yarn-lock.yaml
 ├── README.md
 ├── supabase_setup.sql
 └── supabase_rls_policies.sql
